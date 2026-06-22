@@ -1,6 +1,6 @@
 // Cole aqui a URL do seu Google Apps Script Web App após o setup
 // Guia: veja SETUP_SHEETS.md na raiz do projeto
-export const SHEETS_URL = ''
+export const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxaiG8ui4a6FRG3EGeg7x439e47cJloil75xrbVx5K0Nst7_UkGQRXp8xEJvfNmHw0/exec'
 
 // Checklist postural — baseada no briefing AGC (fev/2025)
 export const PILATES_CHECKLIST = [
