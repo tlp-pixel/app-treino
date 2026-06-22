@@ -5,7 +5,16 @@ import Card from '../components/Card.jsx'
 import Tag from '../components/Tag.jsx'
 import { Flame, Dumbbell, User, Trash2 } from 'lucide-react'
 
-const ROTINA = ['Pilates', 'Pilates + Corrida', 'Academia — Quadríceps', 'Corrida', 'Descanso / Academia', 'Corrida longa + Academia Sup.', 'Academia Glúteo / Descanso']
+// índice = getDay(): 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
+const ROTINA = [
+  'Academia Glúteo / Descanso',        // Dom
+  'Pilates',                           // Seg
+  'Pilates + Corrida leve',            // Ter
+  'Academia — Quadríceps',             // Qua
+  'Corrida (treino principal)',         // Qui
+  'Descanso ou Academia',              // Sex
+  'Corrida longa + Academia Superiores', // Sáb
+]
 const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
