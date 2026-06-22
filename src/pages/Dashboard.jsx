@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTreinos, getStreak } from '../hooks/useStorage.js'
 import Card from '../components/Card.jsx'
 import Tag from '../components/Tag.jsx'
-import { Flame, Dumbbell, Wind, Leaf } from 'lucide-react'
+import { Flame, Dumbbell, User, Trash2 } from 'lucide-react'
 
 const ROTINA = ['Pilates', 'Pilates + Corrida', 'Academia — Quadríceps', 'Corrida', 'Descanso / Academia', 'Corrida longa + Academia Sup.', 'Academia Glúteo / Descanso']
 const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -16,6 +16,7 @@ function formatDate(iso) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [, forceUpdate] = useState(0)
   const treinos = getTreinos()
   const streak = getStreak()
   const today = new Date().toISOString().slice(0, 10)
@@ -43,11 +44,20 @@ export default function Dashboard() {
   return (
     <div style={{ padding: '24px 16px 100px' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 13, color: 'var(--gray-400)', fontWeight: 500 }}>
-          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>Olá, Thali 👋</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--gray-400)', fontWeight: 500 }}>
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>Olá, Thali 👋</h1>
+        </div>
+        <button onClick={() => navigate('/perfil')} style={{
+          background: 'var(--lavender)', border: 'none', borderRadius: 12,
+          padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6,
+          color: '#4a3a6e', fontSize: 13, fontWeight: 600,
+        }}>
+          <User size={16} /> Perfil
+        </button>
       </div>
 
       {/* Streak + Hoje */}
@@ -136,18 +146,32 @@ export default function Dashboard() {
       <button
         onClick={() => navigate('/registrar')}
         style={{
-          marginTop: 20,
-          width: '100%',
-          padding: '16px',
-          background: 'var(--pink-dark)',
-          color: '#fff',
-          borderRadius: 'var(--radius)',
-          fontSize: 16,
-          fontWeight: 700,
+          marginTop: 20, width: '100%', padding: '16px',
+          background: 'var(--pink-dark)', color: '#fff',
+          borderRadius: 'var(--radius)', fontSize: 16, fontWeight: 700,
           boxShadow: '0 4px 16px rgba(232,160,180,0.5)',
         }}
       >
         + Registrar treino de hoje
+      </button>
+
+      {/* Reset */}
+      <button
+        onClick={() => {
+          if (confirm('Apagar TODOS os treinos registrados? Essa ação não pode ser desfeita.')) {
+            localStorage.removeItem('treinos_thali')
+            forceUpdate(n => n + 1)
+          }
+        }}
+        style={{
+          marginTop: 12, width: '100%', padding: '12px',
+          background: 'none', color: 'var(--gray-400)',
+          borderRadius: 'var(--radius)', fontSize: 13, fontWeight: 500,
+          border: '1px solid var(--gray-200)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}
+      >
+        <Trash2 size={14} /> Resetar todos os dados
       </button>
     </div>
   )

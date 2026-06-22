@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { saveTreino } from '../hooks/useStorage.js'
 import { pushToSheets } from '../hooks/useSheets.js'
-import { PILATES_CHECKLIST, ZONAS_CORRIDA, GRUPOS_MUSCULARES, SENSACAO_OPTIONS } from '../config.js'
+import { PILATES_CHECKLIST, ZONAS_CORRIDA, GRUPOS_MUSCULARES, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES } from '../config.js'
 import Card from '../components/Card.jsx'
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
 
@@ -227,10 +227,55 @@ function FormAcademia({ data, onChange }) {
   )
 }
 
+function FormMobilidade({ data, onChange }) {
+  const toggleEx = (id) => {
+    const feitos = data.feitos || []
+    const next = feitos.includes(id) ? feitos.filter(f => f !== id) : [...feitos, id]
+    onChange({ ...data, feitos: next })
+  }
+  const PRIORITY_COLORS = { 'Imperativo': '#e05555', 'Alto': '#d4904a', 'Médio': '#6aad7a' }
+
+  return (
+    <>
+      <FieldLabel>EXERCÍCIOS FEITOS</FieldLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {MOBILIDADE_EXERCISES.map(ex => {
+          const checked = (data.feitos || []).includes(ex.id)
+          return (
+            <button key={ex.id} onClick={() => toggleEx(ex.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              borderRadius: 12, border: '2px solid', textAlign: 'left',
+              borderColor: checked ? 'var(--mint-dark)' : 'var(--gray-200)',
+              background: checked ? 'var(--mint)' : '#fff',
+            }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 6, border: '2px solid',
+                borderColor: checked ? 'var(--mint-dark)' : 'var(--gray-300)',
+                background: checked ? 'var(--mint-dark)' : 'transparent',
+                flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 12,
+              }}>{checked ? '✓' : ''}</div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400 }}>{ex.label}</span>
+                <span style={{ fontSize: 10, marginLeft: 8, color: PRIORITY_COLORS[ex.priority], fontWeight: 600 }}>{ex.priority}</span>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{ex.time}</span>
+            </button>
+          )
+        })}
+      </div>
+      <FieldLabel>OBSERVAÇÕES</FieldLabel>
+      <textarea value={data.obs || ''} onChange={e => onChange({ ...data, obs: e.target.value })}
+        placeholder="Como foi? Algo que sentiu diferente..."
+        style={{ width: '100%', border: '2px solid var(--gray-200)', borderRadius: 12, padding: '10px 14px', fontSize: 14, minHeight: 70, resize: 'vertical', background: '#fff' }} />
+    </>
+  )
+}
+
 // ---- MAIN ----
 
-const TYPE_LABELS = { corrida: '🏃 Corrida', pilates: '🧘 Pilates', academia: '🏋️ Academia' }
-const TYPE_COLORS = { corrida: 'var(--mint)', pilates: 'var(--lavender)', academia: 'var(--peach)' }
+const TYPE_LABELS = { corrida: '🏃 Corrida', pilates: '🧘 Pilates', academia: '🏋️ Academia', mobilidade: '🧩 Mobilidade' }
+const TYPE_COLORS = { corrida: 'var(--mint)', pilates: 'var(--lavender)', academia: 'var(--peach)', mobilidade: 'var(--sky)' }
 
 export default function Registrar() {
   const navigate = useNavigate()
@@ -286,7 +331,7 @@ export default function Registrar() {
       {/* Tipo */}
       <Card style={{ marginBottom: 16 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 12 }}>TIPO DE TREINO</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {Object.entries(TYPE_LABELS).map(([t, label]) => (
             <button key={t} onClick={() => { setType(t); setData({}) }} style={{
               padding: '14px 8px', borderRadius: 14, border: '2px solid',
@@ -306,9 +351,10 @@ export default function Registrar() {
       {/* Form */}
       {type && (
         <Card style={{ marginBottom: 16 }}>
-          {type === 'corrida' && <FormCorrida data={data} onChange={setData} />}
-          {type === 'pilates' && <FormPilates data={data} onChange={setData} />}
-          {type === 'academia' && <FormAcademia data={data} onChange={setData} />}
+          {type === 'corrida'    && <FormCorrida data={data} onChange={setData} />}
+          {type === 'pilates'    && <FormPilates data={data} onChange={setData} />}
+          {type === 'academia'   && <FormAcademia data={data} onChange={setData} />}
+          {type === 'mobilidade' && <FormMobilidade data={data} onChange={setData} />}
         </Card>
       )}
 
