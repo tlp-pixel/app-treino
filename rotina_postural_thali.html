@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotina Postural — Thali</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #181818;
+    --surface2: #222222;
+    --border: #2a2a2a;
+    --text: #e8e4de;
+    --muted: #6b6560;
+    --accent: #c8a96e;
+    --accent2: #7fbfb0;
+    --accent3: #d47a6a;
+    --urgent: #e05555;
+    --warn: #d4904a;
+    --ok: #6aad7a;
+    --tag-bg: #1e1e1e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,15,0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 24px;
+    height: 52px;
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0 16px;
+    height: 52px;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* LAYOUT */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* HEADER */
+  .page-header { margin-bottom: 40px; }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .page-header p { color: var(--muted); font-size: 14px; }
+  .accent-line {
+    width: 32px; height: 2px;
+    background: var(--accent);
+    margin: 12px 0 16px;
+  }
+
+  /* PRIORITY BADGE */
+  .badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .badge-urgent { background: rgba(224,85,85,0.15); color: var(--urgent); }
+  .badge-high { background: rgba(212,144,74,0.15); color: var(--warn); }
+  .badge-med { background: rgba(106,173,122,0.15); color: var(--ok); }
+
+  /* EXERCISE CARDS */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin: 36px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #3a3a3a; }
+  .card.done { opacity: 0.45; }
+  .card.done .card-header { text-decoration: line-through; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .check-btn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    color: transparent;
+    font-size: 12px;
+  }
+  .card.done .check-btn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .card-title {
+    flex: 1;
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .time-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(200,169,110,0.08);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .expand-icon {
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+  .card.open .expand-icon { transform: rotate(180deg); }
+
+  .card-body {
+    display: none;
+    padding: 0 18px 18px 54px;
+    border-top: 1px solid var(--border);
+  }
+  .card.open .card-body { display: block; }
+
+  .card-body-inner { padding-top: 14px; }
+
+  .detail-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .detail-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    min-width: 80px;
+    padding-top: 2px;
+  }
+  .detail-value { color: var(--text); line-height: 1.5; }
+
+  .tiktok-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 7px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tiktok-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: #444;
+  }
+  .tiktok-icon { font-size: 15px; }
+
+  .tip-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(127,191,176,0.07);
+    border-left: 2px solid var(--accent2);
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+    color: #b0d4cd;
+    line-height: 1.5;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .progress-info { flex: 1; }
+  .progress-info h3 { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+  .progress-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .progress-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* OVERVIEW PAGE */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 600px) { .overview-grid { grid-template-columns: 1fr; } }
+
+  .overview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .overview-card h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .overview-card .big { font-size: 32px; font-weight: 300; color: var(--accent); }
+  .overview-card p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .pain-map {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 14px;
+  }
+  .pain-map h3 {
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 16px;
+  }
+  .pain-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .pain-item:last-child { border-bottom: none; }
+  .pain-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pain-cause { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+  .week-plan {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .week-plan-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .week-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+    font-size: 14px;
+  }
+  .week-row:last-child { border-bottom: none; }
+  .day-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 32px;
+  }
+  .week-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .week-tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .week-tag.run { border-color: #4a7a6a; color: var(--accent2); }
+  .week-tag.gym { border-color: #6a5a3a; color: var(--accent); }
+  .week-tag.mob { border-color: #3a3a5a; color: #9090c0; }
+
+  /* RESET BTN */
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: #444; color: var(--text); }
+
+  /* TIMER */
+  .timer-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .timer-btn {
+    background: rgba(200,169,110,0.1);
+    border: 1px solid rgba(200,169,110,0.3);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .timer-btn:hover { background: rgba(200,169,110,0.2); }
+  .timer-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    color: var(--text);
+    min-width: 48px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="active" onclick="showPage('overview')">Visão Geral</button>
+  <button onclick="showPage('mobilidade')">Mobilidade</button>
+  <button onclick="showPage('ativacao')">Ativação</button>
+  <button onclick="showPage('academia')">Academia</button>
+  <button onclick="showPage('corrida')">Pré-Corrida</button>
+  <button onclick="showPage('abc')">Treino ABC</button>
+</nav>
+
+<!-- OVERVIEW -->
+<div id="page-overview" class="page active">
+  <div class="container">
+    <div class="page-header">
+      <h1>Reorganização Postural</h1>
+      <div class="accent-line"></div>
+      <p>Baseado na ficha AGC (fev/2025) + análise lateral. 8–12 semanas para resultado consistente.</p>
+    </div>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <h3>Rotina diária</h3>
+        <div class="big">15'</div>
+        <p>Mobilidade todos os dias, mesmo sem academia</p>
+      </div>
+      <div class="overview-card">
+        <h3>Exercícios no plano</h3>
+        <div class="big">28</div>
+        <p>Distribuídos em 4 módulos</p>
+      </div>
+      <div class="overview-card">
+        <h3>Padrão identificado</h3>
+        <div class="big" style="font-size:20px; padding-top:6px;">Lower Crossed</div>
+        <p>+ cabeça anteriorizada + pronação severa</p>
+      </div>
+      <div class="overview-card">
+        <h3>Prioridade 1</h3>
+        <div class="big" style="font-size:18px; padding-top:6px;">Iliopsoas</div>
+        <p>Encurtamento imperativo — raiz da dor lombar</p>
+      </div>
+    </div>
+
+    <div class="pain-map">
+      <h3>Mapa de dores × causa postural</h3>
+      <div class="pain-item">
+        <div class="pain-dot" style="background:var(--urgent)"></div>
+        <span>Lombar esquerda / Quadrado Lombar</span>
+        <span class="pain-cause">Anteversão pélvica + assimetria</span>
+      </div>
+      <div class="pain-item">
+        <div class="pain-dot" style="background:var(--warn)"></div>
+        <span>Cervical</span>
+        <span class="pain-cause">Cabeça anteriorizada +++ dir</span>
+      </div>
+      <div class="pain-item">
+        <div class="pain-dot" style="background:var(--warn)"></div>
+        <span>Romboide / entre escápulas</span>
+        <span class="pain-cause">Escápulas abduzidas +++ + peitoral severo</span>
+      </div>
+      <div class="pain-item">
+        <div class="pain-dot" style="background: #6a7aad"></div>
+        <span>Joelho (risco latente)</span>
+        <span class="pain-cause">Pronação severa bilateral + valgo</span>
+      </div>
+    </div>
+
+    <div class="week-plan">
+      <div class="week-plan-header">Semana tipo</div>
+      <div class="week-row"><span class="day-name">SEG</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag gym">Academia — Quadríceps</span></div></div>
+      <div class="week-row"><span class="day-name">TER</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag run">Corrida</span></div></div>
+      <div class="week-row"><span class="day-name">QUA</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag gym">Academia — Superior</span></div></div>
+      <div class="week-row"><span class="day-name">QUI</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag run">Corrida</span></div></div>
+      <div class="week-row"><span class="day-name">SEX</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag">Descanso ativo</span></div></div>
+      <div class="week-row"><span class="day-name">SÁB</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag gym">Academia — Glúteos</span></div></div>
+      <div class="week-row"><span class="day-name">DOM</span><div class="week-tags"><span class="week-tag mob">Mobilidade 15'</span><span class="week-tag run">Corrida longa</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILIDADE -->
+<div id="page-mobilidade" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Mobilidade</h1>
+      <div class="accent-line"></div>
+      <p>Fazer todos os dias — 15 a 20 minutos. Pode ser em casa, sem equipamento.</p>
+    </div>
+
+    <div class="progress-bar-wrap" id="prog-mob">
+      <div class="progress-info">
+        <h3>Progresso de hoje</h3>
+        <div class="progress-track"><div class="progress-fill" id="fill-mob"></div></div>
+      </div>
+      <div class="progress-count" id="count-mob">0/9</div>
+    </div>
+
+    <div class="section-label">Imperativo — fazer primeiro</div>
+
+    <!-- CARDS MOBILIDADE -->
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Mobilidade torácica no rolo</span>
+        <div class="card-meta">
+          <span class="badge badge-urgent">Imperativo</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Foam roller na altura das escápulas, braços cruzados no peito. Extensão sobre o rolo segmento por segmento, do meio para cima.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">2 minutos no total, movendo o rolo a cada 30 seg</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Hipercifose torácica trava ombro, cervical e lombar ao mesmo tempo. É o ponto central do seu padrão.</span></div>
+          <div class="tip-box">💡 Não deixa a lombar arquear — o movimento vem da torácica, não do lombar.</div>
+          <div class="timer-wrap">
+            <button class="timer-btn" onclick="startTimer(this, 120)">▶ Timer 2 min</button>
+            <span class="timer-display"></span>
+          </div>
+          <br>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=thoracic+spine+foam+roller+mobility" target="_blank"><span class="tiktok-icon">🎵</span> thoracic spine foam roller mobility</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Chin tuck — correção cervical</span>
+        <div class="card-meta">
+          <span class="badge badge-urgent">Imperativo</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Sentada ou em pé, empurra o queixo para trás (como se fosse fazer papada). Segura 5 seg, solta. Não inclina a cabeça — é retração, não flexão.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">10 repetições de 5 seg, 2–3 vezes ao dia (pode fazer no trabalho)</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Cabeça anteriorizada +++ direita. Esse é o exercício mais direto para corrigir e aliviar a dor cervical.</span></div>
+          <div class="tip-box">💡 Esse você pode fazer a qualquer hora — no computador, no celular, no trânsito.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=chin+tuck+exercise" target="_blank"><span class="tiktok-icon">🎵</span> chin tuck exercise</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Hip flexor stretch ajoelhado — Iliopsoas</span>
+        <div class="card-meta">
+          <span class="badge badge-urgent">Imperativo</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Joelho direito no chão, pé esquerdo à frente. Empurra o quadril para frente mantendo lombar neutra. Não arqueia as costas — o along vem do quadril.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">90 seg cada lado, 2 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Encurtamento IMPERATIVO na ficha. É a causa direta da anteversão pélvica e da dor lombar.</span></div>
+          <div class="tip-box">💡 Varia o braço ipsilateral acima da cabeça para aprofundar o alongamento lateral do iliopsoas.</div>
+          <div class="timer-wrap">
+            <button class="timer-btn" onclick="startTimer(this, 90)">▶ Timer 90 seg</button>
+            <span class="timer-display"></span>
+          </div>
+          <br>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=hip+flexor+stretch+kneeling" target="_blank"><span class="tiktok-icon">🎵</span> hip flexor stretch kneeling</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Alta prioridade</div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Peitoral na parede</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Braço em L a 90° apoiado na parede, gira o tronco para fora devagar. Sente o peitoral estirar, não o ombro.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">60 seg cada lado</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Peitoral severo + escápulas abduzidas = ombros enrolados + cifose. Soltar o peitoral é pré-requisito para ativar o romboide.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=pec+stretch+doorway" target="_blank"><span class="tiktok-icon">🎵</span> pec stretch doorway</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">90/90 — mobilidade de quadril</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Sentada no chão com as pernas em 90/90 (uma à frente, uma ao lado). Inclina o tronco sobre cada perna alternadamente. Tronco ereto, não arredondado.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">45 seg cada lado, 2 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Trabalha rotação interna e externa do quadril — exatamente o que a ficha identificou bilateral.</span></div>
+          <div class="tip-box">💡 Se sentir dificuldade de sentar no chão, coloca um apoio embaixo do quadril.</div>
+          <div class="timer-wrap">
+            <button class="timer-btn" onclick="startTimer(this, 45)">▶ Timer 45 seg</button>
+            <span class="timer-display"></span>
+          </div>
+          <br>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=90+90+hip+stretch" target="_blank"><span class="tiktok-icon">🎵</span> 90 90 hip stretch</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Quadrado lombar lateral — foco esquerdo</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Em pé, braço esquerdo acima da cabeça, inclinação lateral suave para a direita. Sente o estiramento no lateral do tronco esquerdo.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">90 seg lado esquerdo, 60 seg lado direito</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Sua dor principal relatada. QL esquerdo comprimido pela assimetria pélvica.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=QL+stretch+quadratus+lumborum" target="_blank"><span class="tiktok-icon">🎵</span> QL stretch quadratus lumborum</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Panturrilha no degrau</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Pé na borda do degrau. (1) Joelho estendido — gastrocnêmio, 60 seg. (2) Joelho levemente dobrado — sóleo, 60 seg. Calcanhar caindo para baixo devagar.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">60 seg + 60 seg cada lado</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Panturrilha severa bilateral → piora pronação → piora joelho e lombar na corrida. Crítico para você.</span></div>
+          <div class="tip-box">💡 Faz depois de correr também — panturrilha encurtada pós-corrida agrava o ciclo.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=calf+stretch+step+soleus" target="_blank"><span class="tiktok-icon">🎵</span> calf stretch step soleus</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Suboccipital stretch — base do crânio</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">1 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada de costas, joelhos dobrados. Faz o chin tuck e segura. Com as mãos, faz leve pressão na base do crânio para baixo. Relaxa o pescoço completamente.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">60 seg, 2x</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Cabeça anteriorizada comprime os suboccipitais — origem da sua dor cervical e dor de cabeça tensional.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=suboccipital+stretch+neck" target="_blank"><span class="tiktok-icon">🎵</span> suboccipital stretch neck</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="mob">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Open book — rotação torácica</span>
+        <div class="card-meta">
+          <span class="badge badge-med">Médio</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada de lado, joelhos dobrados a 90°. Braço superior abre para o outro lado seguindo os olhos. Deixa a rotação vir da torácica, não do lombar. Segura 3 seg, volta.</span></div>
+          <div class="detail-row"><span class="detail-label">Tempo</span><span class="detail-value">10 reps cada lado</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Trabalha romboide + rotação torácica + abertura do peitoral ao mesmo tempo.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=open+book+stretch+thoracic" target="_blank"><span class="tiktok-icon">🎵</span> open book stretch thoracic</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetPage('mob')">↺ Resetar progresso</button>
+  </div>
+</div>
+
+<!-- ATIVAÇÃO -->
+<div id="page-ativacao" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Ativação</h1>
+      <div class="accent-line"></div>
+      <p>Fazer antes do treino de força — 8 a 10 minutos. "Liga" os músculos inibidos para que o treino recrute o certo.</p>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-info">
+        <h3>Progresso de hoje</h3>
+        <div class="progress-track"><div class="progress-fill" id="fill-atv"></div></div>
+      </div>
+      <div class="progress-count" id="count-atv">0/6</div>
+    </div>
+
+    <div class="section-label">Glúteo — prioridade máxima</div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Clamshell com elástico — glúteo médio</span>
+        <div class="card-meta">
+          <span class="badge badge-urgent">Imperativo</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada de lado, elástico acima dos joelhos, quadris dobrados a 45°. Abre o joelho superior como concha — 3 seg subindo, 3 seg descendo. Não deixa o quadril girar para trás.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">15 reps cada lado, 2 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Glúteo médio inibido = desnível pélvico a cada passada na corrida. É o músculo mais importante para estabilizar você.</span></div>
+          <div class="tip-box">💡 Sente o lateral do glúteo queimar, não a lombar. Se sentir lombar, está compensando.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=clamshell+exercise+glute+med" target="_blank"><span class="tiktok-icon">🎵</span> clamshell exercise glute med</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Ponte unilateral — glúteo máximo</span>
+        <div class="card-meta">
+          <span class="badge badge-urgent">Imperativo</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada, um pé no chão, outro estendido. Sobe o quadril em ponte, pausa 2 seg no topo. Pelve nivelada — não deixa um lado cair.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">10 reps cada lado, 2 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Trabalha a assimetria dir/esq e ativa glúteo antes de agachar ou deadlift.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=single+leg+glute+bridge" target="_blank"><span class="tiktok-icon">🎵</span> single leg glute bridge</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Core e escapular</div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Dead bug — core anti-extensão</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">3 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada, braços ao teto, joelhos a 90°. Estende braço oposto ao joelho devagar até quase tocar o chão, volta. Lombar colada no chão o tempo todo.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">8 reps cada lado, 3 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Ativa transverso do abdômen sem crunch — o core que combate a lordose, não o que agrava.</span></div>
+          <div class="tip-box">💡 Se a lombar sair do chão, reduza o range. Controle é tudo aqui.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=dead+bug+exercise+core" target="_blank"><span class="tiktok-icon">🎵</span> dead bug exercise core</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Band pull-apart — retração escapular</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Em pé, elástico à frente com ambas as mãos à altura dos ombros. Abre os braços lateralmente até o elástico tocar o peito. Escápulas se encontram atrás. Cotovelos levemente dobrados.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">15 reps, 3 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Ativa romboides e trapézio médio/inferior — exatamente o que precisa ser fortalecido para combater o romboide dolorido e a cifose.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=band+pull+apart+scapular" target="_blank"><span class="tiktok-icon">🎵</span> band pull apart scapular</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Deep neck flexor — cervical profunda</span>
+        <div class="card-meta">
+          <span class="badge badge-high">Alto</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Deitada de costas. Faz chin tuck suave e levanta a cabeça 1–2 cm do chão. Segura 10 seg. Não força o pescoço — é uma ativação suave e profunda.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">10 reps de 10 seg</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Os flexores cervicais profundos são inibidos quando a cabeça anterioriza. Sem eles ativos, o pescoço nunca se reposiciona.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=deep+neck+flexor+activation" target="_blank"><span class="tiktok-icon">🎵</span> deep neck flexor activation</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-page="atv">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Face pull com elástico — ombro + escápula</span>
+        <div class="card-meta">
+          <span class="badge badge-med">Médio</span>
+          <span class="time-tag">2 min</span>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Como fazer</span><span class="detail-value">Elástico na altura dos olhos, puxa em direção ao rosto com cotovelos altos e abertos. Rotação externa no final — punhos atrás das orelhas.</span></div>
+          <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">15 reps, 2 séries</span></div>
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Combina rotação externa de ombro + retração escapular. Contra-movimentação direta do ombro protruído ++++.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=face+pull+resistance+band" target="_blank"><span class="tiktok-icon">🎵</span> face pull resistance band</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetPage('atv')">↺ Resetar progresso</button>
+  </div>
+</div>
+
+<!-- ACADEMIA -->
+<div id="page-academia" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Academia</h1>
+      <div class="accent-line"></div>
+      <p>Ajustes e prioridades para seus treinos existentes. Foco em corrigir padrões compensatórios.</p>
+    </div>
+
+    <div class="section-label">Dia Glúteos / Posterior</div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Ponte glútea com barra</span>
+        <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Retroversão pélvica antes de subir (achata a lombar). Pausa 2 seg no topo. Não hiperextende no final — glúteo fecha, não lombar abre.</span></div>
+        <div class="tip-box">💡 Se sentir lombar no topo, você está usando o iliopsoas pra subir, não o glúteo.</div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=glute+bridge+barbell+form" target="_blank"><span class="tiktok-icon">🎵</span> glute bridge barbell form</a>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Abdução no cabo — glúteo médio</span>
+        <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Amplitude controlada — não inclina o tronco para compensar. Movimento vem do quadril lateral. Tronco estável o tempo todo.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=cable+hip+abduction" target="_blank"><span class="tiktok-icon">🎵</span> cable hip abduction</a>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Deadlift romeno</span>
+        <div class="card-meta"><span class="badge badge-high">Alto</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Neutro lombar rigoroso — não força lordose no início. Empurra o chão com os calcanhares ao subir. Para quando sentir isquio estirar, não force mais.</span></div>
+        <div class="tip-box">💡 Com anteversão pélvica, o risco é iniciar o movimento já em hiperlordose. Ativa o core antes de pegar a barra.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=romanian+deadlift+form" target="_blank"><span class="tiktok-icon">🎵</span> romanian deadlift form</a>
+      </div></div>
+    </div>
+
+    <div class="section-label">Dia Superior — foco postural</div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Remada curvada ou no cabo</span>
+        <div class="card-meta"><span class="badge badge-urgent">Prioridade 1</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Inicia com escápula retraída, cotovelo puxa para trás (não para cima). Pausa 1 seg com escápulas juntas. Foca na sensação entre as escápulas — romboide.</span></div>
+        <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">É o exercício mais importante para combater cifose + romboide dolorido. Deve ser o primeiro do dia superior.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=bent+over+row+scapular+retraction" target="_blank"><span class="tiktok-icon">🎵</span> bent over row scapular retraction</a>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Face pull com corda no cabo</span>
+        <div class="card-meta"><span class="badge badge-urgent">Prioridade 2</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Cotovelos altos, puxa para o rosto, rotação externa no final (punhos atrás das orelhas). Não encurva o pescoço para frente ao puxar.</span></div>
+        <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">3–4 séries. Pode fazer em todos os dias de treino.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=face+pull+cable+form" target="_blank"><span class="tiktok-icon">🎵</span> face pull cable form</a>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="gym">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">Puxada (lat pulldown) — pegada média</span>
+        <div class="card-meta"><span class="badge badge-high">Alto</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Pegada média (não muito aberta). Cotovelo puxa para baixo e levemente para trás. Não inclina o tronco excessivamente para trás — trabalha o lat, não o lombar.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=lat+pulldown+form+technique" target="_blank"><span class="tiktok-icon">🎵</span> lat pulldown form technique</a>
+      </div></div>
+    </div>
+
+    <div class="section-label">O que evitar por enquanto</div>
+
+    <div class="card" style="border-color: rgba(224,85,85,0.25);">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span style="width:22px;height:22px;border-radius:50%;background:rgba(224,85,85,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">✗</span>
+        <span class="card-title" style="color:var(--urgent)">Supino pegada larga / Crucifixo</span>
+        <div class="card-meta"><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Por que evitar</span><span class="detail-value">Peitoral severo + escápulas abduzidas — esses exercícios reforçam exatamente o padrão que você quer sair. Pode retornar após 8–12 semanas de trabalho corretivo.</span></div>
+          <div class="detail-row"><span class="detail-label">Alternativa</span><span class="detail-value">Supino com pegada neutra (halteres) ou máquina de peitoral com amplitude controlada.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color: rgba(224,85,85,0.25);">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span style="width:22px;height:22px;border-radius:50%;background:rgba(224,85,85,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">✗</span>
+        <span class="card-title" style="color:var(--urgent)">Crunch / Sit-up</span>
+        <div class="card-meta"><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Por que evitar</span><span class="detail-value">Reforça flexão de tronco — agrava cifose e anteriorização da cabeça. Substitui por dead bug e prancha com respiração.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetPage('gym')">↺ Resetar progresso</button>
+  </div>
+</div>
+
+<!-- PRÉ-CORRIDA -->
+<div id="page-corrida" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Pré-Corrida</h1>
+      <div class="accent-line"></div>
+      <p>10 minutos antes de cada saída. Não pular — com pronação severa e glúteo médio inibido, correr "frio" é risco real.</p>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-info">
+        <h3>Sequência de hoje</h3>
+        <div class="progress-track"><div class="progress-fill" id="fill-run"></div></div>
+      </div>
+      <div class="progress-count" id="count-run">0/5</div>
+    </div>
+
+    <div class="section-label">Sequência em ordem</div>
+
+    <div class="card" data-page="run">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">① Mobilidade torácica no rolo</span>
+        <div class="card-meta"><span class="time-tag">90 seg</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Como</span><span class="detail-value">Rolo na torácica, extensão segmento por segmento. Abre o tronco antes de qualquer coisa.</span></div>
+        <div class="timer-wrap">
+          <button class="timer-btn" onclick="startTimer(this, 90)">▶ Timer 90 seg</button>
+          <span class="timer-display"></span>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="run">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">② Hip flexor stretch ajoelhado</span>
+        <div class="card-meta"><span class="time-tag">60 seg/lado</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Como</span><span class="detail-value">Meio ajoelhada, quadril para frente, lombar neutra. Solta o iliopsoas antes de pedir passada.</span></div>
+        <div class="timer-wrap">
+          <button class="timer-btn" onclick="startTimer(this, 60)">▶ Timer 60 seg</button>
+          <span class="timer-display"></span>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="run">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">③ Clamshell com elástico</span>
+        <div class="card-meta"><span class="time-tag">15 reps/lado</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Como</span><span class="detail-value">Liga o glúteo médio. Sem isso, a pelve desnivelará a cada apoio unipodal na corrida.</span></div>
+        <div class="detail-row"><span class="detail-label">Foco</span><span class="detail-value">Sentir o lateral do glúteo ativar, não a lombar.</span></div>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="run">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">④ Ponte unilateral</span>
+        <div class="card-meta"><span class="time-tag">10 reps/lado</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Como</span><span class="detail-value">Ativa glúteo máximo e treina o equilíbrio pélvico unilateral que a corrida vai exigir.</span></div>
+        <div class="detail-row"><span class="detail-label">Foco</span><span class="detail-value">Pelve nivelada no topo — não deixa cair o lado que está suspenso.</span></div>
+      </div></div>
+    </div>
+
+    <div class="card" data-page="run">
+      <div class="card-header" onclick="toggleCard(this)">
+        <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+        <span class="card-title">⑤ Monster walk com elástico</span>
+        <div class="card-meta"><span class="time-tag">10 reps/lado</span><span class="expand-icon">▼</span></div>
+      </div>
+      <div class="card-body"><div class="card-body-inner">
+        <div class="detail-row"><span class="detail-label">Como</span><span class="detail-value">Elástico acima dos joelhos, agachamento parcial, passos laterais mantendo tensão. Não deixa os joelhos cair para dentro.</span></div>
+        <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Ativa glúteo médio em posição funcional — mais próximo do que a corrida exige do que o clamshell.</span></div>
+        <a class="tiktok-btn" href="https://www.tiktok.com/search?q=monster+walk+resistance+band" target="_blank"><span class="tiktok-icon">🎵</span> monster walk resistance band</a>
+      </div></div>
+    </div>
+
+    <div style="margin-top:32px; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <div class="section-label" style="margin-top:0">Alerta sobre tênis — urgente</div>
+      <p style="font-size:14px; color:var(--muted); line-height:1.7;">Pronação <strong style="color:var(--text)">severa bilateral</strong> (esq ++++) identificada na ficha. Se seu tênis atual não tem controle de pronação, cada quilômetro está sobrecarregando joelho, quadril e lombar. Antes de continuar aumentando volume de corrida, <strong style="color:var(--accent)">avalia o tênis com um especialista em biomecânica de corrida ou loja especializada com análise de pisada</strong>. Palmilha pode ser necessária.</p>
+    </div>
+
+    <button class="reset-btn" onclick="resetPage('run')">↺ Resetar progresso</button>
+  </div>
+</div>
+
+<!-- TREINO ABC -->
+<div id="page-abc" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Treino ABC</h1>
+      <div class="accent-line"></div>
+      <p>8 semanas sem trocar exercícios. Sempre 5 min de ativação antes de pegar peso.</p>
+    </div>
+
+    <!-- SELECTOR -->
+    <div style="display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap;">
+      <button onclick="showABC('a')" id="btn-a" style="padding:10px 24px;border-radius:6px;border:1px solid var(--accent);background:rgba(200,169,110,0.12);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">Treino A — Glúteos</button>
+      <button onclick="showABC('b')" id="btn-b" style="padding:10px 24px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">Treino B — Quadríceps</button>
+      <button onclick="showABC('c')" id="btn-c" style="padding:10px 24px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">Treino C — Superior</button>
+    </div>
+
+    <!-- TREINO A -->
+    <div id="abc-a">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--muted);">
+        <strong style="color:var(--text)">Sábado · ~60 min</strong> &nbsp;|&nbsp; Pré-ativação: Clamshell 15/lado → Ponte unilateral 10/lado
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-info">
+          <h3>Progresso de hoje</h3>
+          <div class="progress-track"><div class="progress-fill" id="fill-abc-a"></div></div>
+        </div>
+        <div class="progress-count" id="count-abc-a">0/7</div>
+      </div>
+
+      <div class="section-label">Prioridade máxima</div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Ponte glútea com barra</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="time-tag">4×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Retroversão pélvica antes de subir. Pausa 2 seg no topo. Não hiperextende no final — glúteo fecha, não lombar abre.</span></div>
+          <div class="tip-box">💡 Se sentir lombar no topo, você está usando o iliopsoas, não o glúteo.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=glute+bridge+barbell+form" target="_blank"><span class="tiktok-icon">🎵</span> glute bridge barbell form</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Deadlift romeno</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="time-tag">4×10</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Neutro lombar rigoroso — não força lordose no início. Para quando isquio estirar. Ativa core antes de pegar a barra.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=romanian+deadlift+form" target="_blank"><span class="tiktok-icon">🎵</span> romanian deadlift form</a>
+        </div></div>
+      </div>
+
+      <div class="section-label">Alta prioridade</div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Agachamento búlgaro</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×10/lado</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Tronco vertical, joelho sobre o 2° dedo do pé. Começa pelo lado mais fraco. Não deixa o joelho cair para dentro.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=bulgarian+split+squat+form" target="_blank"><span class="tiktok-icon">🎵</span> bulgarian split squat form</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Abdução cabo em pé — glúteo médio</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×15/lado</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Tronco estável — movimento vem só do quadril lateral. Não inclina o tronco para compensar amplitude.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=cable+hip+abduction" target="_blank"><span class="tiktok-icon">🎵</span> cable hip abduction</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Stiff unilateral</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×10/lado</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Trabalha assimetria dir/esq. Para quando sentir isquio estirar — não força. Lombar neutra o tempo todo.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=single+leg+stiff+deadlift" target="_blank"><span class="tiktok-icon">🎵</span> single leg stiff deadlift</a>
+        </div></div>
+      </div>
+
+      <div class="section-label">Complementar</div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Leg curl deitado</span>
+          <div class="card-meta"><span class="badge badge-med">Complementar</span><span class="time-tag">3×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Carga moderada, controlado na descida. Sem compensar com lombar. Pode ser unilateral para expor assimetria.</span></div>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-a">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Dead bug — finalização</span>
+          <div class="card-meta"><span class="badge badge-med">Finalização</span><span class="time-tag">3×8/lado</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Lombar colada no chão o tempo todo. Se sair, reduz o range. Lento e controlado.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=dead+bug+exercise+core" target="_blank"><span class="tiktok-icon">🎵</span> dead bug exercise core</a>
+        </div></div>
+      </div>
+
+      <button class="reset-btn" onclick="resetPage('abc-a')">↺ Resetar progresso</button>
+    </div>
+
+    <!-- TREINO B -->
+    <div id="abc-b" style="display:none;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--muted);">
+        <strong style="color:var(--text)">Segunda · ~55 min</strong> &nbsp;|&nbsp; Pré-ativação: Dead bug 8/lado → Monster walk 10/lado
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-info">
+          <h3>Progresso de hoje</h3>
+          <div class="progress-track"><div class="progress-fill" id="fill-abc-b"></div></div>
+        </div>
+        <div class="progress-count" id="count-abc-b">0/7</div>
+      </div>
+
+      <div class="section-label">Prioridade máxima</div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Agachamento livre</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="time-tag">4×10</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Neutro lombar — não força lordose. Profundidade com controle. Joelhos rastreando os dedos, sem valgo.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=squat+form+technique" target="_blank"><span class="tiktok-icon">🎵</span> squat form technique</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Leg press 45°</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade</span><span class="time-tag">4×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Pés médio-altos, joelhos rastreando os dedos o tempo todo. Vigilância constante com valgo — especialmente no direito.</span></div>
+        </div></div>
+      </div>
+
+      <div class="section-label">Alta prioridade</div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Agachamento sumô com haltere</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Trabalha adutores (severo na ficha) + abertura de quadril. Bom complemento para o padrão de rotação interna bilateral.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=sumo+squat+dumbbell" target="_blank"><span class="tiktok-icon">🎵</span> sumo squat dumbbell</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Afundo caminhando</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×10/lado</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Tronco ereto, joelho não passa muito o pé. Unilateral — expõe assimetria dir/esq.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=walking+lunge+form" target="_blank"><span class="tiktok-icon">🎵</span> walking lunge form</a>
+        </div></div>
+      </div>
+
+      <div class="section-label">Complementar</div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Cadeira extensora</span>
+          <div class="card-meta"><span class="badge badge-med">Complementar</span><span class="time-tag">3×15</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Carga leve-moderada, amplitude controlada. Foco no VMO (parte interna da coxa acima do joelho). Se o joelho desviar para dentro — carga alta demais.</span></div>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Panturrilha em pé</span>
+          <div class="card-meta"><span class="badge badge-med">Complementar</span><span class="time-tag">4×15</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Por que</span><span class="detail-value">Encurtamento severo bilateral. Entra no treino como fortalecimento em amplitude — complementa o alongamento da mobilidade.</span></div>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-b">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Prancha com respiração — finalização</span>
+          <div class="card-meta"><span class="badge badge-med">Finalização</span><span class="time-tag">3×25 seg</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Respira normalmente — não prende o ar. Core ativo sem apneia. Lombar neutra, não deixa o quadril subir ou cair.</span></div>
+          <div class="timer-wrap">
+            <button class="timer-btn" onclick="startTimer(this, 25)">▶ Timer 25 seg</button>
+            <span class="timer-display"></span>
+          </div>
+        </div></div>
+      </div>
+
+      <button class="reset-btn" onclick="resetPage('abc-b')">↺ Resetar progresso</button>
+    </div>
+
+    <!-- TREINO C -->
+    <div id="abc-c" style="display:none;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--muted);">
+        <strong style="color:var(--text)">Quarta · ~55 min</strong> &nbsp;|&nbsp; Pré-ativação: Band pull-apart 15 → Face pull elástico 15 → Deep neck flexor 10×5 seg
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-info">
+          <h3>Progresso de hoje</h3>
+          <div class="progress-track"><div class="progress-fill" id="fill-abc-c"></div></div>
+        </div>
+        <div class="progress-count" id="count-abc-c">0/7</div>
+      </div>
+
+      <div class="section-label">Prioridade máxima — anti-cifose</div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Remada curvada com barra</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade 1</span><span class="time-tag">4×10</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Primeiro exercício do dia. Pausa 1 seg com escápulas juntas. Cotovelo puxa para trás, não para cima. Sente o romboide contrair.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=bent+over+row+scapular+retraction" target="_blank"><span class="tiktok-icon">🎵</span> bent over row scapular retraction</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Face pull com corda</span>
+          <div class="card-meta"><span class="badge badge-urgent">Prioridade 2</span><span class="time-tag">4×15</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Cotovelos altos, rotação externa no final — punhos atrás das orelhas. Não encurva o pescoço para frente ao puxar.</span></div>
+          <div class="tip-box">💡 Pode fazer em todos os dias de treino — não tem limite aqui.</div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=face+pull+cable+form" target="_blank"><span class="tiktok-icon">🎵</span> face pull cable form</a>
+        </div></div>
+      </div>
+
+      <div class="section-label">Alta prioridade</div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Puxada (lat pulldown) — pegada média</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">4×10</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Pegada média — não muito aberta. Cotovelo puxa para baixo e levemente para trás. Tronco levemente inclinado, não exageradamente.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=lat+pulldown+form+technique" target="_blank"><span class="tiktok-icon">🎵</span> lat pulldown form technique</a>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Desenvolvimento com halteres</span>
+          <div class="card-meta"><span class="badge badge-high">Alto</span><span class="time-tag">3×10</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Amplitude até a orelha — não força acima. Sem extender a lombar para ganhar amplitude. Core ativo.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=dumbbell+shoulder+press+form" target="_blank"><span class="tiktok-icon">🎵</span> dumbbell shoulder press form</a>
+        </div></div>
+      </div>
+
+      <div class="section-label">Complementar</div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Rosca direta</span>
+          <div class="card-meta"><span class="badge badge-med">Complementar</span><span class="time-tag">3×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Sem restrição postural específica. Não balanças o tronco para ganhar carga.</span></div>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Tríceps corda</span>
+          <div class="card-meta"><span class="badge badge-med">Complementar</span><span class="time-tag">3×12</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Sem restrição. Tronco levemente inclinado, cotovelos fixos ao lado do corpo.</span></div>
+        </div></div>
+      </div>
+
+      <div class="card" data-page="abc-c">
+        <div class="card-header" onclick="toggleCard(this)">
+          <button class="check-btn" onclick="toggleDone(event, this)">✓</button>
+          <span class="card-title">Band pull-apart — finalização</span>
+          <div class="card-meta"><span class="badge badge-med">Finalização</span><span class="time-tag">3×15</span><span class="expand-icon">▼</span></div>
+        </div>
+        <div class="card-body"><div class="card-body-inner">
+          <div class="detail-row"><span class="detail-label">Ajuste</span><span class="detail-value">Escápulas se encontram atrás. Fecha o dia sempre com retração — reforça o padrão corretivo.</span></div>
+          <a class="tiktok-btn" href="https://www.tiktok.com/search?q=band+pull+apart+scapular" target="_blank"><span class="tiktok-icon">🎵</span> band pull apart scapular</a>
+        </div></div>
+      </div>
+
+      <button class="reset-btn" onclick="resetPage('abc-c')">↺ Resetar progresso</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // PAGE NAV
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // CARD TOGGLE
+  function toggleCard(header) {
+    const card = header.closest('.card');
+    card.classList.toggle('open');
+  }
+
+  // DONE TOGGLE
+  function toggleDone(e, btn) {
+    e.stopPropagation();
+    const card = btn.closest('.card');
+    card.classList.toggle('done');
+    updateProgress(card.dataset.page);
+  }
+
+  // ABC TAB SWITCHER
+  function showABC(id) {
+    ['a','b','c'].forEach(x => {
+      document.getElementById('abc-' + x).style.display = x === id ? 'block' : 'none';
+      const btn = document.getElementById('btn-' + x);
+      if (x === id) {
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'rgba(200,169,110,0.12)';
+        btn.style.color = 'var(--accent)';
+      } else {
+        btn.style.borderColor = 'var(--border)';
+        btn.style.background = 'none';
+        btn.style.color = 'var(--muted)';
+      }
+    });
+  }
+
+  function updateProgress(page) {
+    const pageMap = { mob: 'mob', atv: 'atv', run: 'run', 'abc-a': 'abc-a', 'abc-b': 'abc-b', 'abc-c': 'abc-c' };
+    if (!pageMap[page]) return;
+
+    const cards = document.querySelectorAll(`[data-page="${page}"]`);
+    const done = document.querySelectorAll(`[data-page="${page}"].done`).length;
+    const total = cards.length;
+    const pct = total ? (done / total * 100) : 0;
+
+    const fill = document.getElementById(`fill-${page}`);
+    const count = document.getElementById(`count-${page}`);
+    if (fill) fill.style.width = pct + '%';
+    if (count) count.textContent = `${done}/${total}`;
+  }
+
+  function resetPage(page) {
+    document.querySelectorAll(`[data-page="${page}"]`).forEach(c => c.classList.remove('done'));
+    updateProgress(page);
+  }
+
+  // TIMER
+  const timers = new Map();
+
+  function startTimer(btn, seconds) {
+    const display = btn.nextElementSibling;
+    const key = btn;
+
+    if (timers.has(key)) {
+      clearInterval(timers.get(key));
+      timers.delete(key);
+      btn.textContent = `▶ Timer ${formatTime(seconds)}`;
+      display.textContent = '';
+      return;
+    }
+
+    let remaining = seconds;
+    display.textContent = formatTime(remaining);
+    btn.textContent = '■ Parar';
+
+    const interval = setInterval(() => {
+      remaining--;
+      display.textContent = formatTime(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        timers.delete(key);
+        display.textContent = '✓ Feito!';
+        btn.textContent = `▶ Timer ${formatTime(seconds)}`;
+      }
+    }, 1000);
+
+    timers.set(key, interval);
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}:${String(sec).padStart(2,'0')}` : `${s}s`;
+  }
+</script>
+</body>
+</html>
