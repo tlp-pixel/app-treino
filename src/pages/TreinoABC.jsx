@@ -88,6 +88,22 @@ function ExercicioCard({ ex, checked, onToggle }) {
               💡 {ex.dica}
             </div>
           )}
+          {ex.tiktok && (
+            <a
+              href={`https://www.tiktok.com/search?q=${encodeURIComponent(ex.tiktok)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10,
+                padding: '5px 12px', borderRadius: 8,
+                background: '#1a1a2e', color: '#fff',
+                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+              }}
+            >
+              🎵 {ex.tiktok}
+            </a>
+          )}
           {ex.timer && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
               <button onClick={startTimer} style={{
