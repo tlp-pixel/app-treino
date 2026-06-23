@@ -6,6 +6,7 @@ import Historico from './pages/Historico.jsx'
 import Progresso from './pages/Progresso.jsx'
 import TreinoABC from './pages/TreinoABC.jsx'
 import Perfil from './pages/Perfil.jsx'
+import PlanoCorrida from './pages/PlanoCorrida.jsx'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/"          element={<Dashboard />} />
           <Route path="/registrar" element={<Registrar />} />
           <Route path="/abc"       element={<TreinoABC />} />
+          <Route path="/plano"     element={<PlanoCorrida />} />
           <Route path="/historico" element={<Historico />} />
           <Route path="/progresso" element={<Progresso />} />
           <Route path="/perfil"    element={<Perfil />} />
