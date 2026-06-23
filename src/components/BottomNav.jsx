@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Home, PlusCircle, Calendar, TrendingUp, Map } from 'lucide-react'
+import { Home, PlusCircle, Calendar, TrendingUp, Map, Dumbbell } from 'lucide-react'
 
 const links = [
   { to: '/',          icon: Home,        label: 'Início'   },
   { to: '/registrar', icon: PlusCircle,  label: 'Registrar'},
+  { to: '/abc',       icon: Dumbbell,    label: 'ABC'      },
   { to: '/plano',     icon: Map,         label: 'Plano'    },
   { to: '/historico', icon: Calendar,    label: 'Histórico'},
   { to: '/progresso', icon: TrendingUp,  label: 'Progresso'},

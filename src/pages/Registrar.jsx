@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { saveTreino } from '../hooks/useStorage.js'
 import { pushToSheets } from '../hooks/useSheets.js'
-import { PILATES_CHECKLIST, ZONAS_CORRIDA, GRUPOS_MUSCULARES, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES } from '../config.js'
+import { PILATES_CHECKLIST, ZONAS_CORRIDA, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES, ABC_TREINOS } from '../config.js'
 import Card from '../components/Card.jsx'
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 
 function SensacaoSelect({ value, onChange }) {
   return (
@@ -145,75 +145,91 @@ function FormPilates({ data, onChange }) {
   )
 }
 
+const PRIORITY_BADGE = {
+  'Prioridade':   { bg: 'rgba(224,85,85,0.12)',  text: '#c05050' },
+  'Alto':         { bg: 'rgba(212,144,74,0.12)', text: '#b07030' },
+  'Complementar': { bg: 'rgba(106,173,122,0.12)',text: '#4a8a5a' },
+  'Finalização':  { bg: 'rgba(100,120,200,0.12)',text: '#5060a0' },
+}
+
 function FormAcademia({ data, onChange }) {
-  const [novoEx, setNovoEx] = useState('')
+  const treino = data.treino || 'a'
+  const exercicios = ABC_TREINOS[treino].exercicios
+  const cargas = data.cargas || {}
+  const feitos = data.feitos || []
 
-  const addExercicio = () => {
-    if (!novoEx.trim()) return
-    const exercicios = data.exercicios || []
-    onChange({ ...data, exercicios: [...exercicios, { nome: novoEx.trim(), series: '', reps: '', carga: '' }] })
-    setNovoEx('')
+  const setTreino = (t) => onChange({ ...data, treino: t, feitos: [], cargas: {} })
+  const toggleFeito = (id) => {
+    const next = feitos.includes(id) ? feitos.filter(f => f !== id) : [...feitos, id]
+    onChange({ ...data, feitos: next })
   }
-
-  const updateEx = (i, field, val) => {
-    const exercicios = [...(data.exercicios || [])]
-    exercicios[i] = { ...exercicios[i], [field]: val }
-    onChange({ ...data, exercicios })
-  }
-
-  const removeEx = (i) => {
-    const exercicios = (data.exercicios || []).filter((_, idx) => idx !== i)
-    onChange({ ...data, exercicios })
-  }
+  const setCarga = (id, val) => onChange({ ...data, cargas: { ...cargas, [id]: val } })
 
   return (
     <>
-      <FieldLabel>GRUPO MUSCULAR</FieldLabel>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {GRUPOS_MUSCULARES.map(g => (
-          <button key={g} onClick={() => onChange({ ...data, grupo: g })} style={{
-            padding: '8px 14px', borderRadius: 20, border: '2px solid',
-            borderColor: data.grupo === g ? 'var(--peach-dark)' : 'var(--gray-200)',
-            background: data.grupo === g ? 'var(--peach)' : '#fff',
-            fontSize: 13, fontWeight: data.grupo === g ? 600 : 400,
-            color: data.grupo === g ? '#6e4a2a' : 'var(--gray-600)',
-          }}>{g}</button>
+      <FieldLabel>TREINO DO DIA</FieldLabel>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+        {Object.entries(ABC_TREINOS).map(([key, t]) => (
+          <button key={key} onClick={() => setTreino(key)} style={{
+            flex: 1, padding: '10px 6px', borderRadius: 12, border: '2px solid',
+            borderColor: treino === key ? 'var(--peach-dark)' : 'var(--gray-200)',
+            background: treino === key ? 'var(--peach)' : '#fff',
+            fontWeight: treino === key ? 700 : 500, fontSize: 13,
+            color: treino === key ? '#6e4a2a' : 'var(--gray-600)',
+          }}>{t.label.replace('Treino ', '')}</button>
         ))}
       </div>
+      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>
+        Pré-ativação: {ABC_TREINOS[treino].preAtivacao}
+      </p>
 
-      <FieldLabel>EXERCÍCIOS</FieldLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {(data.exercicios || []).map((ex, i) => (
-          <Card key={i} color="var(--gray-100)" style={{ padding: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{ex.nome}</span>
-              <button onClick={() => removeEx(i)} style={{ background: 'none', color: 'var(--gray-400)', padding: 4 }}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {[['series', 'Séries'], ['reps', 'Reps'], ['carga', 'Carga (kg)']].map(([field, label]) => (
-                <div key={field}>
-                  <p style={{ fontSize: 10, color: 'var(--gray-400)', marginBottom: 4 }}>{label}</p>
-                  <input value={ex[field]} onChange={e => updateEx(i, field, e.target.value)}
-                    placeholder={field === 'carga' ? '0' : '—'}
-                    style={{ width: '100%', border: '2px solid var(--gray-200)', borderRadius: 8, padding: '6px 10px', fontSize: 14, background: '#fff' }} />
+      <FieldLabel>EXERCÍCIOS — marque o que fez e anote a carga</FieldLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {exercicios.map(ex => {
+          const done = feitos.includes(ex.id)
+          const badge = PRIORITY_BADGE[ex.priority] || {}
+          return (
+            <div key={ex.id} style={{
+              borderRadius: 12, border: '2px solid',
+              borderColor: done ? 'var(--peach-dark)' : 'var(--gray-200)',
+              background: done ? 'var(--peach)' : '#fff',
+              overflow: 'hidden',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+                <button onClick={() => toggleFeito(ex.id)} style={{
+                  width: 22, height: 22, borderRadius: '50%', border: '2px solid', flexShrink: 0,
+                  borderColor: done ? '#a06030' : 'var(--gray-300)',
+                  background: done ? '#a06030' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 11, fontWeight: 700,
+                }}>{done ? '✓' : ''}</button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, textDecoration: done ? 'line-through' : 'none', color: done ? '#6e4a2a' : 'inherit' }}>
+                    {ex.label}
+                  </p>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: badge.bg, color: badge.text }}>
+                      {ex.priority}
+                    </span>
+                    <span style={{ fontSize: 10, color: 'var(--peach-dark)', fontFamily: 'monospace', fontWeight: 700 }}>
+                      {ex.volume}
+                    </span>
+                  </div>
                 </div>
-              ))}
+                <input
+                  value={cargas[ex.id] || ''}
+                  onChange={e => setCarga(ex.id, e.target.value)}
+                  placeholder="kg"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    width: 52, border: '2px solid var(--gray-200)', borderRadius: 8,
+                    padding: '6px 8px', fontSize: 14, textAlign: 'center', background: '#fff',
+                  }}
+                />
+              </div>
             </div>
-          </Card>
-        ))}
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input value={novoEx} onChange={e => setNovoEx(e.target.value)}
-            placeholder="Nome do exercício..." onKeyDown={e => e.key === 'Enter' && addExercicio()}
-            style={{ flex: 1, border: '2px solid var(--gray-200)', borderRadius: 12, padding: '10px 14px', fontSize: 14, background: '#fff' }} />
-          <button onClick={addExercicio} style={{
-            padding: '10px 14px', borderRadius: 12, background: 'var(--peach)', color: '#6e4a2a', fontWeight: 700,
-          }}>
-            <Plus size={18} />
-          </button>
-        </div>
+          )
+        })}
       </div>
 
       <FieldLabel>COMO ME SENTI</FieldLabel>
@@ -221,8 +237,8 @@ function FormAcademia({ data, onChange }) {
 
       <FieldLabel>OBSERVAÇÕES</FieldLabel>
       <textarea value={data.obs || ''} onChange={e => onChange({ ...data, obs: e.target.value })}
-        placeholder="Peso novo, dor, PR, algo que notou..."
-        style={{ width: '100%', border: '2px solid var(--gray-200)', borderRadius: 12, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical', background: '#fff' }} />
+        placeholder="PR, dor, algo que notou..."
+        style={{ width: '100%', border: '2px solid var(--gray-200)', borderRadius: 12, padding: '10px 14px', fontSize: 14, minHeight: 70, resize: 'vertical', background: '#fff' }} />
     </>
   )
 }
