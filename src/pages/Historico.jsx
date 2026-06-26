@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getTreinos, deleteTreino } from '../hooks/useStorage.js'
 import { ZONAS_CORRIDA, PILATES_CHECKLIST, SENSACAO_OPTIONS } from '../config.js'
 import Card from '../components/Card.jsx'
 import Tag from '../components/Tag.jsx'
-import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -65,6 +66,7 @@ function CalendarioMes({ year, month, treinos }) {
 }
 
 function TreinoCard({ treino, onDelete }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const zona = ZONAS_CORRIDA.find(z => z.id === treino.data?.zona)
   const sensacao = SENSACAO_OPTIONS.find(s => s.value === treino.data?.sensacao)
@@ -122,12 +124,20 @@ function TreinoCard({ treino, onDelete }) {
               {treino.data?.obs && <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 4 }}>{treino.data.obs}</p>}
             </>
           )}
-          <button onClick={() => onDelete(treino.id)} style={{
-            marginTop: 12, display: 'flex', alignItems: 'center', gap: 6,
-            color: '#e05a5a', background: 'none', fontSize: 13,
-          }}>
-            <Trash2 size={14} /> Excluir registro
-          </button>
+          <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+            <button onClick={() => navigate(`/registrar?edit=${treino.id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              color: 'var(--pink-dark)', background: 'none', fontSize: 13,
+            }}>
+              <Pencil size={14} /> Editar
+            </button>
+            <button onClick={() => onDelete(treino.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              color: '#e05a5a', background: 'none', fontSize: 13,
+            }}>
+              <Trash2 size={14} /> Excluir registro
+            </button>
+          </div>
         </div>
       )}
     </Card>

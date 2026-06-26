@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { saveTreino, getUltimaSerie } from '../hooks/useStorage.js'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { saveTreino, getTreinos, getUltimaSerie } from '../hooks/useStorage.js'
 import { pushToSheets } from '../hooks/useSheets.js'
 import { PILATES_CHECKLIST, ZONAS_CORRIDA, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES, ABC_TREINOS } from '../config.js'
 import Card from '../components/Card.jsx'
@@ -520,9 +520,13 @@ const TYPE_COLORS = { corrida: 'var(--mint)', pilates: 'var(--lavender)', academ
 
 export default function Registrar() {
   const navigate = useNavigate()
-  const [type, setType] = useState(null)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [data, setData] = useState({})
+  const [searchParams] = useSearchParams()
+  const editId = searchParams.get('edit')
+  const existing = useState(() => editId ? getTreinos().find(t => t.id === editId) || null : null)[0]
+
+  const [type, setType] = useState(existing?.type || null)
+  const [date, setDate] = useState(existing?.date || new Date().toISOString().slice(0, 10))
+  const [data, setData] = useState(existing?.data || {})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -530,24 +534,24 @@ export default function Registrar() {
     if (!type) return
     setSaving(true)
     const treino = {
-      id: Date.now().toString(),
+      id: existing?.id || Date.now().toString(),
       date,
       type,
       data,
-      createdAt: new Date().toISOString(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
     }
     saveTreino(treino)
     await pushToSheets(treino)
     setSaving(false)
     setSaved(true)
-    setTimeout(() => navigate('/'), 1200)
+    setTimeout(() => navigate(existing ? '/historico' : '/'), 1200)
   }
 
   if (saved) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100dvh', gap: 16 }}>
         <div style={{ fontSize: 64 }}>✅</div>
-        <p style={{ fontSize: 20, fontWeight: 700 }}>Treino registrado!</p>
+        <p style={{ fontSize: 20, fontWeight: 700 }}>{existing ? 'Registro atualizado!' : 'Treino registrado!'}</p>
       </div>
     )
   }
@@ -559,7 +563,7 @@ export default function Registrar() {
         <button onClick={() => navigate(-1)} style={{ background: 'none', color: 'var(--gray-600)', padding: 4 }}>
           <ChevronLeft size={24} />
         </button>
-        <h2 style={{ fontSize: 20, fontWeight: 700 }}>Registrar treino</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700 }}>{existing ? 'Editar registro' : 'Registrar treino'}</h2>
       </div>
 
       {/* Data */}
@@ -572,21 +576,31 @@ export default function Registrar() {
       {/* Tipo */}
       <Card style={{ marginBottom: 16 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 12 }}>TIPO DE TREINO</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {Object.entries(TYPE_LABELS).map(([t, label]) => (
-            <button key={t} onClick={() => { setType(t); setData({}) }} style={{
-              padding: '14px 8px', borderRadius: 14, border: '2px solid',
-              borderColor: type === t ? '#999' : 'var(--gray-200)',
-              background: type === t ? TYPE_COLORS[t] : '#fff',
-              fontSize: 13, fontWeight: type === t ? 700 : 400,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              boxShadow: type === t ? 'var(--shadow)' : 'none',
-            }}>
-              <span style={{ fontSize: 24 }}>{label.split(' ')[0]}</span>
-              <span>{label.split(' ')[1]}</span>
-            </button>
-          ))}
-        </div>
+        {existing ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+            borderRadius: 14, background: TYPE_COLORS[type], width: 'fit-content',
+            fontSize: 14, fontWeight: 700,
+          }}>
+            {TYPE_LABELS[type]}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {Object.entries(TYPE_LABELS).map(([t, label]) => (
+              <button key={t} onClick={() => { setType(t); setData({}) }} style={{
+                padding: '14px 8px', borderRadius: 14, border: '2px solid',
+                borderColor: type === t ? '#999' : 'var(--gray-200)',
+                background: type === t ? TYPE_COLORS[t] : '#fff',
+                fontSize: 13, fontWeight: type === t ? 700 : 400,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                boxShadow: type === t ? 'var(--shadow)' : 'none',
+              }}>
+                <span style={{ fontSize: 24 }}>{label.split(' ')[0]}</span>
+                <span>{label.split(' ')[1]}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Form */}
@@ -606,7 +620,7 @@ export default function Registrar() {
           opacity: saving ? 0.7 : 1,
           boxShadow: '0 4px 16px rgba(232,160,180,0.4)',
         }}>
-          {saving ? 'Salvando...' : '💾 Salvar treino'}
+          {saving ? 'Salvando...' : existing ? '💾 Salvar alterações' : '💾 Salvar treino'}
         </button>
       )}
     </div>
