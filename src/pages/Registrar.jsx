@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveTreino } from '../hooks/useStorage.js'
+import { saveTreino, getUltimaSerie } from '../hooks/useStorage.js'
 import { pushToSheets } from '../hooks/useSheets.js'
 import { PILATES_CHECKLIST, ZONAS_CORRIDA, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES, ABC_TREINOS } from '../config.js'
 import Card from '../components/Card.jsx'
@@ -40,9 +40,33 @@ function TextInput({ value, onChange, placeholder, type = 'text' }) {
 
 // ---- FORMS ----
 
+const TIPOS_CORRIDA = [
+  { id: 'leve',       label: '🟢 Leve / Base' },
+  { id: 'longa',      label: '🏁 Corrida longa' },
+  { id: 'intervalos', label: '🔴 Intervalos' },
+  { id: 'tempo',      label: '🟡 Tempo run / Progressiva' },
+  { id: 'teste',      label: '🏆 Teste de marco' },
+]
+
 function FormCorrida({ data, onChange }) {
+  const tipo = data.tipo || 'leve'
+  const set = (field) => (v) => onChange({ ...data, [field]: v })
+
   return (
     <>
+      <FieldLabel>TIPO DE TREINO</FieldLabel>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {TIPOS_CORRIDA.map(t => (
+          <button key={t.id} onClick={() => onChange({ ...data, tipo: t.id })} style={{
+            padding: '8px 14px', borderRadius: 20, border: '2px solid',
+            borderColor: tipo === t.id ? 'var(--mint-dark)' : 'var(--gray-200)',
+            background: tipo === t.id ? 'var(--mint)' : '#fff',
+            fontSize: 13, fontWeight: tipo === t.id ? 600 : 400,
+            color: tipo === t.id ? '#2a6648' : 'var(--gray-600)',
+          }}>{t.label}</button>
+        ))}
+      </div>
+
       <FieldLabel>ZONA DE TREINO</FieldLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {ZONAS_CORRIDA.map(z => (
@@ -59,19 +83,111 @@ function FormCorrida({ data, onChange }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <FieldLabel>DISTÂNCIA (km)</FieldLabel>
-          <TextInput value={data.distancia || ''} onChange={v => onChange({ ...data, distancia: v })} placeholder="Ex: 5.2" type="number" />
+      {(tipo === 'leve' || tipo === 'longa') && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <FieldLabel>DISTÂNCIA (km)</FieldLabel>
+            <TextInput value={data.distancia || ''} onChange={set('distancia')} placeholder="Ex: 5.2" type="number" />
+          </div>
+          <div>
+            <FieldLabel>PACE MÉDIO (min/km)</FieldLabel>
+            <TextInput value={data.pace || ''} onChange={set('pace')} placeholder="Ex: 7:30" />
+          </div>
         </div>
-        <div>
-          <FieldLabel>PACE (min/km)</FieldLabel>
-          <TextInput value={data.pace || ''} onChange={v => onChange({ ...data, pace: v })} placeholder="Ex: 7:30" />
-        </div>
-      </div>
+      )}
+
+      {tipo === 'intervalos' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>DIST. AQUECIMENTO (km)</FieldLabel>
+              <TextInput value={data.distAquec || ''} onChange={set('distAquec')} placeholder="Ex: 1.5" type="number" />
+            </div>
+            <div>
+              <FieldLabel>DIST. DESAQUECIMENTO (km)</FieldLabel>
+              <TextInput value={data.distDesaquec || ''} onChange={set('distDesaquec')} placeholder="Ex: 0.5" type="number" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>Nº DE TIROS</FieldLabel>
+              <TextInput value={data.numTiros || ''} onChange={set('numTiros')} placeholder="Ex: 4" type="number" />
+            </div>
+            <div>
+              <FieldLabel>DISTÂNCIA POR TIRO (m)</FieldLabel>
+              <TextInput value={data.distTiro || ''} onChange={set('distTiro')} placeholder="Ex: 600" type="number" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>PACE POR TIRO (min/km)</FieldLabel>
+              <TextInput value={data.paceTiro || ''} onChange={set('paceTiro')} placeholder="Ex: 6:00" />
+            </div>
+            <div>
+              <FieldLabel>RECUPERAÇÃO (seg)</FieldLabel>
+              <TextInput value={data.recuperacao || ''} onChange={set('recuperacao')} placeholder="Ex: 90" type="number" />
+            </div>
+          </div>
+        </>
+      )}
+
+      {tipo === 'tempo' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>DIST. AQUECIMENTO (km)</FieldLabel>
+              <TextInput value={data.distAquec || ''} onChange={set('distAquec')} placeholder="Ex: 1" type="number" />
+            </div>
+            <div>
+              <FieldLabel>DIST. PRINCIPAL (km)</FieldLabel>
+              <TextInput value={data.distPrincipal || ''} onChange={set('distPrincipal')} placeholder="Ex: 5" type="number" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>PACE INICIAL (min/km)</FieldLabel>
+              <TextInput value={data.paceInicial || ''} onChange={set('paceInicial')} placeholder="Ex: 6:30" />
+            </div>
+            <div>
+              <FieldLabel>PACE FINAL (min/km)</FieldLabel>
+              <TextInput value={data.paceFinal || ''} onChange={set('paceFinal')} placeholder="Ex: 6:00" />
+            </div>
+          </div>
+          <FieldLabel>DIST. DESAQUECIMENTO (km)</FieldLabel>
+          <TextInput value={data.distDesaquec || ''} onChange={set('distDesaquec')} placeholder="Ex: 1" type="number" />
+        </>
+      )}
+
+      {tipo === 'teste' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <FieldLabel>DISTÂNCIA TOTAL (km)</FieldLabel>
+              <TextInput value={data.distancia || ''} onChange={set('distancia')} placeholder="Ex: 8" type="number" />
+            </div>
+            <div>
+              <FieldLabel>PACE ALVO (min/km)</FieldLabel>
+              <TextInput value={data.paceAlvo || ''} onChange={set('paceAlvo')} placeholder="Ex: 6:30" />
+            </div>
+          </div>
+          <FieldLabel>PACE REALIZADO (min/km)</FieldLabel>
+          <TextInput value={data.pace || ''} onChange={set('pace')} placeholder="Ex: 6:25" />
+          <FieldLabel>BATEU O MARCO?</FieldLabel>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[['sim', '✅ Sim'], ['nao', '❌ Não']].map(([v, l]) => (
+              <button key={v} onClick={() => onChange({ ...data, bateuMarco: v })} style={{
+                flex: 1, padding: '10px', borderRadius: 12, border: '2px solid',
+                borderColor: data.bateuMarco === v ? 'var(--mint-dark)' : 'var(--gray-200)',
+                background: data.bateuMarco === v ? 'var(--mint)' : '#fff',
+                fontWeight: 600, fontSize: 14, color: data.bateuMarco === v ? '#2a6648' : 'var(--gray-600)',
+              }}>{l}</button>
+            ))}
+          </div>
+        </>
+      )}
 
       <FieldLabel>FC MÉDIA (bpm) — opcional</FieldLabel>
-      <TextInput value={data.fc || ''} onChange={v => onChange({ ...data, fc: v })} placeholder="Ex: 148" type="number" />
+      <TextInput value={data.fc || ''} onChange={set('fc')} placeholder="Ex: 148" type="number" />
 
       <FieldLabel>COMO ME SENTI</FieldLabel>
       <SensacaoSelect value={data.sensacao} onChange={v => onChange({ ...data, sensacao: v })} />
@@ -145,30 +261,151 @@ function FormPilates({ data, onChange }) {
   )
 }
 
-const PRIORITY_BADGE = {
-  'Prioridade':   { bg: 'rgba(224,85,85,0.12)',  text: '#c05050' },
-  'Alto':         { bg: 'rgba(212,144,74,0.12)', text: '#b07030' },
-  'Complementar': { bg: 'rgba(106,173,122,0.12)',text: '#4a8a5a' },
-  'Finalização':  { bg: 'rgba(100,120,200,0.12)',text: '#5060a0' },
+const PRIORITY_COLORS = {
+  'Prioridade':   { bg: 'rgba(224,85,85,0.12)',  text: '#c05050', border: 'rgba(224,85,85,0.3)' },
+  'Alto':         { bg: 'rgba(212,144,74,0.12)', text: '#b07030', border: 'rgba(212,144,74,0.3)' },
+  'Complementar': { bg: 'rgba(106,173,122,0.12)',text: '#4a8a5a', border: 'rgba(106,173,122,0.3)' },
+  'Finalização':  { bg: 'rgba(100,120,200,0.12)',text: '#5060a0', border: 'rgba(100,120,200,0.3)' },
+}
+
+function PriorityBadge({ priority }) {
+  const c = PRIORITY_COLORS[priority] || {}
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+      background: c.bg, color: c.text, border: `1px solid ${c.border}`,
+      textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+    }}>{priority}</span>
+  )
+}
+
+function parseSeries(volume) {
+  const m = volume.match(/^(\d+)×/)
+  return m ? parseInt(m[1], 10) : 1
+}
+
+function ExercicioAcademiaCard({ ex, checked, onToggle, series, onSeriesChange, ultima }) {
+  const [open, setOpen] = useState(false)
+  const numSeries = parseSeries(ex.volume)
+
+  return (
+    <div style={{
+      background: checked ? 'var(--gray-100)' : '#fff',
+      borderRadius: 12, marginBottom: 10,
+      border: '2px solid var(--gray-200)',
+      opacity: checked ? 0.6 : 1,
+      transition: 'opacity 0.2s',
+      overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }}
+        onClick={() => setOpen(o => !o)}>
+        <button onClick={e => { e.stopPropagation(); onToggle() }} style={{
+          width: 24, height: 24, borderRadius: '50%', border: '2px solid',
+          borderColor: checked ? 'var(--peach-dark)' : 'var(--gray-300)',
+          background: checked ? 'var(--peach-dark)' : 'transparent',
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 12, fontWeight: 700,
+        }}>{checked ? '✓' : ''}</button>
+
+        <span style={{ flex: 1, fontWeight: 600, fontSize: 14, textDecoration: checked ? 'line-through' : 'none' }}>
+          {ex.label}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <PriorityBadge priority={ex.priority} />
+          <span style={{
+            fontFamily: 'monospace', fontSize: 12, color: 'var(--peach-dark)',
+            background: 'var(--peach)', padding: '2px 8px', borderRadius: 4,
+          }}>{ex.volume}</span>
+          <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{open ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {open && (
+        <div style={{ padding: '0 16px 14px 52px', borderTop: '1px solid var(--gray-100)' }}>
+          <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 10, lineHeight: 1.6 }}>
+            <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Ajuste: </span>{ex.ajuste}
+          </p>
+          {ex.dica && (
+            <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--mint)', borderRadius: 8, fontSize: 12, color: '#2a6648' }}>
+              💡 {ex.dica}
+            </div>
+          )}
+          {ex.tiktok && (
+            <a
+              href={`https://www.tiktok.com/search?q=${encodeURIComponent(ex.tiktok)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10,
+                padding: '5px 12px', borderRadius: 8,
+                background: '#1a1a2e', color: '#fff',
+                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+              }}
+            >
+              🎵 {ex.tiktok}
+            </a>
+          )}
+
+          {ultima && (
+            <p style={{ fontSize: 12, color: 'var(--peach-dark)', marginTop: 10, fontWeight: 600 }}>
+              📌 Última vez: {ultima.map(v => v || '—').join(' / ')} kg
+            </p>
+          )}
+
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', marginTop: 10, marginBottom: 6 }}>
+            CARGA POR SÉRIE (kg)
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {Array.from({ length: numSeries }).map((_, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 10, color: 'var(--gray-400)', marginBottom: 4 }}>Série {i + 1}</p>
+                <input
+                  value={series?.[i] || ''}
+                  onChange={e => onSeriesChange(i, e.target.value)}
+                  placeholder={ultima?.[i] ? String(ultima[i]) : '0'}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    width: 52, border: '2px solid var(--gray-200)', borderRadius: 8,
+                    padding: '6px 8px', fontSize: 14, textAlign: 'center', background: '#fff',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function FormAcademia({ data, onChange }) {
   const treino = data.treino || 'a'
-  const exercicios = ABC_TREINOS[treino].exercicios
-  const cargas = data.cargas || {}
+  const treinoObj = ABC_TREINOS[treino]
+  const exercicios = treinoObj.exercicios
+  const seriesData = data.series || {}
   const feitos = data.feitos || []
+  const ativacaoFeita = data.ativacao || []
 
-  const setTreino = (t) => onChange({ ...data, treino: t, feitos: [], cargas: {} })
+  const setTreino = (t) => onChange({ ...data, treino: t, feitos: [], series: {}, ativacao: [] })
   const toggleFeito = (id) => {
     const next = feitos.includes(id) ? feitos.filter(f => f !== id) : [...feitos, id]
     onChange({ ...data, feitos: next })
   }
-  const setCarga = (id, val) => onChange({ ...data, cargas: { ...cargas, [id]: val } })
+  const toggleAtivacao = (id) => {
+    const next = ativacaoFeita.includes(id) ? ativacaoFeita.filter(f => f !== id) : [...ativacaoFeita, id]
+    onChange({ ...data, ativacao: next })
+  }
+  const setSerie = (exId, idx, val) => {
+    const exSeries = [...(seriesData[exId] || [])]
+    exSeries[idx] = val
+    onChange({ ...data, series: { ...seriesData, [exId]: exSeries } })
+  }
 
   return (
     <>
       <FieldLabel>TREINO DO DIA</FieldLabel>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         {Object.entries(ABC_TREINOS).map(([key, t]) => (
           <button key={key} onClick={() => setTreino(key)} style={{
             flex: 1, padding: '10px 6px', borderRadius: 12, border: '2px solid',
@@ -179,58 +416,46 @@ function FormAcademia({ data, onChange }) {
           }}>{t.label.replace('Treino ', '')}</button>
         ))}
       </div>
-      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>
-        Pré-ativação: {ABC_TREINOS[treino].preAtivacao}
-      </p>
 
-      <FieldLabel>EXERCÍCIOS — marque o que fez e anote a carga</FieldLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {exercicios.map(ex => {
-          const done = feitos.includes(ex.id)
-          const badge = PRIORITY_BADGE[ex.priority] || {}
+      <FieldLabel>PRÉ-ATIVAÇÃO — marque o que fez</FieldLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
+        {treinoObj.preAtivacao.map(item => {
+          const checked = ativacaoFeita.includes(item.id)
           return (
-            <div key={ex.id} style={{
-              borderRadius: 12, border: '2px solid',
-              borderColor: done ? 'var(--peach-dark)' : 'var(--gray-200)',
-              background: done ? 'var(--peach)' : '#fff',
-              overflow: 'hidden',
+            <button key={item.id} onClick={() => toggleAtivacao(item.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 14px', borderRadius: 12, border: '2px solid',
+              borderColor: checked ? 'var(--peach-dark)' : 'var(--gray-200)',
+              background: checked ? 'var(--peach)' : '#fff',
+              textAlign: 'left',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
-                <button onClick={() => toggleFeito(ex.id)} style={{
-                  width: 22, height: 22, borderRadius: '50%', border: '2px solid', flexShrink: 0,
-                  borderColor: done ? '#a06030' : 'var(--gray-300)',
-                  background: done ? '#a06030' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 11, fontWeight: 700,
-                }}>{done ? '✓' : ''}</button>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, textDecoration: done ? 'line-through' : 'none', color: done ? '#6e4a2a' : 'inherit' }}>
-                    {ex.label}
-                  </p>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: badge.bg, color: badge.text }}>
-                      {ex.priority}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'var(--peach-dark)', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {ex.volume}
-                    </span>
-                  </div>
-                </div>
-                <input
-                  value={cargas[ex.id] || ''}
-                  onChange={e => setCarga(ex.id, e.target.value)}
-                  placeholder="kg"
-                  onClick={e => e.stopPropagation()}
-                  style={{
-                    width: 52, border: '2px solid var(--gray-200)', borderRadius: 8,
-                    padding: '6px 8px', fontSize: 14, textAlign: 'center', background: '#fff',
-                  }}
-                />
-              </div>
-            </div>
+              <div style={{
+                width: 20, height: 20, borderRadius: 6, border: '2px solid',
+                borderColor: checked ? '#a06030' : 'var(--gray-300)',
+                background: checked ? '#a06030' : 'transparent',
+                flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 12,
+              }}>{checked ? '✓' : ''}</div>
+              <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, color: checked ? '#6e4a2a' : 'var(--gray-600)' }}>
+                {item.label}
+              </span>
+            </button>
           )
         })}
       </div>
+
+      <FieldLabel>EXERCÍCIOS</FieldLabel>
+      {exercicios.map(ex => (
+        <ExercicioAcademiaCard
+          key={ex.id}
+          ex={ex}
+          checked={feitos.includes(ex.id)}
+          onToggle={() => toggleFeito(ex.id)}
+          series={seriesData[ex.id]}
+          onSeriesChange={(i, v) => setSerie(ex.id, i, v)}
+          ultima={getUltimaSerie(treino, ex.id)}
+        />
+      ))}
 
       <FieldLabel>COMO ME SENTI</FieldLabel>
       <SensacaoSelect value={data.sensacao} onChange={v => onChange({ ...data, sensacao: v })} />

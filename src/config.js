@@ -59,7 +59,10 @@ export const ABC_TREINOS = {
   a: {
     label: 'Treino A — Glúteos',
     dia: 'Sábado · ~60 min',
-    preAtivacao: 'Clamshell 15/lado → Ponte unilateral 10/lado',
+    preAtivacao: [
+      { id: 'pre_a1', label: 'Clamshell 15/lado' },
+      { id: 'pre_a2', label: 'Ponte unilateral 10/lado' },
+    ],
     exercicios: [
       { id: 'a1', label: 'Ponte glútea com barra',       volume: '4×12', priority: 'Prioridade',
         ajuste: 'Retroversão pélvica antes de subir. Pausa 2 seg no topo. Não hiperextende no final — glúteo fecha, não lombar abre.',
@@ -87,7 +90,10 @@ export const ABC_TREINOS = {
   b: {
     label: 'Treino B — Quadríceps',
     dia: 'Segunda · ~55 min',
-    preAtivacao: 'Dead bug 8/lado → Monster walk 10/lado',
+    preAtivacao: [
+      { id: 'pre_b1', label: 'Dead bug 8/lado' },
+      { id: 'pre_b2', label: 'Monster walk 10/lado' },
+    ],
     exercicios: [
       { id: 'b1', label: 'Agachamento livre',            volume: '4×10', priority: 'Prioridade',
         ajuste: 'Neutro lombar — não força lordose. Profundidade com controle. Joelhos rastreando os dedos, sem valgo.',
@@ -113,7 +119,11 @@ export const ABC_TREINOS = {
   c: {
     label: 'Treino C — Superior',
     dia: 'Quarta · ~55 min',
-    preAtivacao: 'Band pull-apart 15 → Face pull elástico 15 → Deep neck flexor 10×5 seg',
+    preAtivacao: [
+      { id: 'pre_c1', label: 'Band pull-apart 15' },
+      { id: 'pre_c2', label: 'Face pull elástico 15' },
+      { id: 'pre_c3', label: 'Deep neck flexor 10×5 seg' },
+    ],
     exercicios: [
       { id: 'c1', label: 'Remada curvada com barra',    volume: '4×10', priority: 'Prioridade',
         ajuste: 'Primeiro exercício do dia. Pausa 1 seg com escápulas juntas. Cotovelo puxa para trás, não para cima. Sente o romboide contrair.',

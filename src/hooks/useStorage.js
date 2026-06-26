@@ -29,6 +29,15 @@ export function getTreinosByMonth(year, month) {
   })
 }
 
+// Retorna o array de cargas por série usadas da última vez que esse exercício
+// foi registrado nesse treino (a/b/c), ou null se nunca foi registrado.
+export function getUltimaSerie(treinoKey, exId) {
+  const all = getTreinos()
+    .filter(t => t.type === 'academia' && t.data?.treino === treinoKey && t.data?.series?.[exId]?.some(v => v))
+    .sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt))
+  return all.length ? all[0].data.series[exId] : null
+}
+
 export function getStreak() {
   const all = getTreinos()
   if (!all.length) return 0

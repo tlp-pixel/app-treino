@@ -169,7 +169,7 @@ export default function TreinoABC() {
       <Card color="var(--peach)" style={{ marginBottom: 16 }}>
         <p style={{ fontWeight: 700, fontSize: 14, color: '#6e4a2a' }}>{treino.dia}</p>
         <p style={{ fontSize: 12, color: '#8e6a4a', marginTop: 4 }}>
-          Pré-ativação: {treino.preAtivacao}
+          Pré-ativação: {treino.preAtivacao.map(p => p.label).join(' → ')}
         </p>
       </Card>
 
