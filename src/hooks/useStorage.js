@@ -22,6 +22,24 @@ export function deleteTreino(id) {
   localStorage.setItem(KEY, JSON.stringify(all))
 }
 
+// Junta treinos vindos do Google Sheets com os que já existem localmente.
+// Nunca sobrescreve um registro local (pra não perder edição feita offline) —
+// só adiciona de volta os que faltam aqui (recuperação após perda de dados locais).
+export function mergeTreinos(remoteTreinos) {
+  if (!Array.isArray(remoteTreinos) || !remoteTreinos.length) return 0
+  const all = getTreinos()
+  const localIds = new Set(all.map(t => t.id))
+  let added = 0
+  for (const t of remoteTreinos) {
+    if (!t?.id || localIds.has(t.id)) continue
+    all.push(t)
+    localIds.add(t.id)
+    added++
+  }
+  if (added) localStorage.setItem(KEY, JSON.stringify(all))
+  return added
+}
+
 export function getTreinosByMonth(year, month) {
   return getTreinos().filter(t => {
     const d = new Date(t.date + 'T12:00:00')

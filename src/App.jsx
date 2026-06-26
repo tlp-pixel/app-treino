@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import BottomNav from './components/BottomNav.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -7,8 +8,17 @@ import Progresso from './pages/Progresso.jsx'
 import TreinoABC from './pages/TreinoABC.jsx'
 import Perfil from './pages/Perfil.jsx'
 import PlanoCorrida from './pages/PlanoCorrida.jsx'
+import { mergeTreinos } from './hooks/useStorage.js'
+import { fetchFromSheets } from './hooks/useSheets.js'
 
 export default function App() {
+  useEffect(() => {
+    // Recupera no armazenamento local qualquer treino que esteja na planilha
+    // mas não esteja aqui — protege contra perda de dados do navegador (ex: iOS
+    // limpando localStorage de sites não abertos por uns dias).
+    fetchFromSheets().then(remote => { if (remote) mergeTreinos(remote) })
+  }, [])
+
   return (
     <HashRouter>
       <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: 'var(--cream)', position: 'relative' }}>

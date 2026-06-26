@@ -18,10 +18,13 @@ export async function pushToSheets(treino) {
   }
 }
 
+// Busca os treinos guardados na planilha (formato { id, date, type, data, createdAt }[])
+// para recuperar dados em caso de perda do armazenamento local do navegador.
 export async function fetchFromSheets() {
   if (!SHEETS_URL) return null
   try {
     const res = await fetch(SHEETS_URL + '?action=getAll')
-    return await res.json()
+    const json = await res.json()
+    return Array.isArray(json?.treinos) ? json.treinos : null
   } catch { return null }
 }
