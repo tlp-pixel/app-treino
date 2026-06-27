@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ABC_TREINOS } from '../config.js'
 import Card from '../components/Card.jsx'
+import TiktokLink from '../components/TiktokLink.jsx'
+import AtivacaoCard from '../components/AtivacaoCard.jsx'
 
 const PRIORITY_COLORS = {
   'Prioridade':   { bg: 'rgba(224,85,85,0.12)',  text: '#c05050', border: 'rgba(224,85,85,0.3)' },
@@ -83,27 +85,17 @@ function ExercicioCard({ ex, checked, onToggle }) {
           <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 10, lineHeight: 1.6 }}>
             <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Ajuste: </span>{ex.ajuste}
           </p>
+          {ex.porq && (
+            <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 6, lineHeight: 1.6 }}>
+              <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Por quê: </span>{ex.porq}
+            </p>
+          )}
           {ex.dica && (
             <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--mint)', borderRadius: 8, fontSize: 12, color: '#2a6648' }}>
               💡 {ex.dica}
             </div>
           )}
-          {ex.tiktok && (
-            <a
-              href={`https://www.tiktok.com/search?q=${encodeURIComponent(ex.tiktok)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10,
-                padding: '5px 12px', borderRadius: 8,
-                background: '#1a1a2e', color: '#fff',
-                fontSize: 12, fontWeight: 600, textDecoration: 'none',
-              }}
-            >
-              🎵 {ex.tiktok}
-            </a>
-          )}
+          {ex.tiktok && <TiktokLink query={ex.tiktok} />}
           {ex.timer && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
               <button onClick={startTimer} style={{
@@ -134,8 +126,8 @@ export default function TreinoABC() {
 
   const treino = ABC_TREINOS[aba]
   const checks = checked[aba] || {}
-  const total = treino.exercicios.length
-  const done = treino.exercicios.filter(e => checks[e.id]).length
+  const total = treino.preAtivacao.length + treino.exercicios.length
+  const done = treino.preAtivacao.filter(p => checks[p.id]).length + treino.exercicios.filter(e => checks[e.id]).length
   const pct = total ? (done / total * 100) : 0
 
   const toggle = (id) => {
@@ -168,9 +160,6 @@ export default function TreinoABC() {
       {/* Info do dia */}
       <Card color="var(--peach)" style={{ marginBottom: 16 }}>
         <p style={{ fontWeight: 700, fontSize: 14, color: '#6e4a2a' }}>{treino.dia}</p>
-        <p style={{ fontSize: 12, color: '#8e6a4a', marginTop: 4 }}>
-          Pré-ativação: {treino.preAtivacao.map(p => p.label).join(' → ')}
-        </p>
       </Card>
 
       {/* Progresso */}
@@ -188,7 +177,14 @@ export default function TreinoABC() {
         </div>
       </Card>
 
+      {/* Pré-ativação */}
+      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 8 }}>PRÉ-ATIVAÇÃO</p>
+      {treino.preAtivacao.map(item => (
+        <AtivacaoCard key={item.id} item={item} checked={!!checks[item.id]} onToggle={() => toggle(item.id)} />
+      ))}
+
       {/* Exercícios */}
+      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginTop: 16, marginBottom: 8 }}>EXERCÍCIOS</p>
       {treino.exercicios.map(ex => (
         <ExercicioCard key={ex.id} ex={ex} checked={!!checks[ex.id]} onToggle={() => toggle(ex.id)} />
       ))}

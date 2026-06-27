@@ -4,6 +4,8 @@ import { saveTreino, getTreinos, getUltimaSerie } from '../hooks/useStorage.js'
 import { pushToSheets } from '../hooks/useSheets.js'
 import { PILATES_CHECKLIST, ZONAS_CORRIDA, SENSACAO_OPTIONS, MOBILIDADE_EXERCISES, ABC_TREINOS } from '../config.js'
 import Card from '../components/Card.jsx'
+import TiktokLink from '../components/TiktokLink.jsx'
+import AtivacaoCard from '../components/AtivacaoCard.jsx'
 import { ChevronLeft } from 'lucide-react'
 
 function SensacaoSelect({ value, onChange }) {
@@ -325,27 +327,17 @@ function ExercicioAcademiaCard({ ex, checked, onToggle, series, onSeriesChange, 
           <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 10, lineHeight: 1.6 }}>
             <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Ajuste: </span>{ex.ajuste}
           </p>
+          {ex.porq && (
+            <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 6, lineHeight: 1.6 }}>
+              <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Por quê: </span>{ex.porq}
+            </p>
+          )}
           {ex.dica && (
             <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--mint)', borderRadius: 8, fontSize: 12, color: '#2a6648' }}>
               💡 {ex.dica}
             </div>
           )}
-          {ex.tiktok && (
-            <a
-              href={`https://www.tiktok.com/search?q=${encodeURIComponent(ex.tiktok)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10,
-                padding: '5px 12px', borderRadius: 8,
-                background: '#1a1a2e', color: '#fff',
-                fontSize: 12, fontWeight: 600, textDecoration: 'none',
-              }}
-            >
-              🎵 {ex.tiktok}
-            </a>
-          )}
+          {ex.tiktok && <TiktokLink query={ex.tiktok} />}
 
           {ultima && (
             <p style={{ fontSize: 12, color: 'var(--peach-dark)', marginTop: 10, fontWeight: 600 }}>
@@ -418,31 +410,14 @@ function FormAcademia({ data, onChange }) {
       </div>
 
       <FieldLabel>PRÉ-ATIVAÇÃO — marque o que fez</FieldLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
-        {treinoObj.preAtivacao.map(item => {
-          const checked = ativacaoFeita.includes(item.id)
-          return (
-            <button key={item.id} onClick={() => toggleAtivacao(item.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 14px', borderRadius: 12, border: '2px solid',
-              borderColor: checked ? 'var(--peach-dark)' : 'var(--gray-200)',
-              background: checked ? 'var(--peach)' : '#fff',
-              textAlign: 'left',
-            }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: 6, border: '2px solid',
-                borderColor: checked ? '#a06030' : 'var(--gray-300)',
-                background: checked ? '#a06030' : 'transparent',
-                flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 12,
-              }}>{checked ? '✓' : ''}</div>
-              <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, color: checked ? '#6e4a2a' : 'var(--gray-600)' }}>
-                {item.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {treinoObj.preAtivacao.map(item => (
+        <AtivacaoCard
+          key={item.id}
+          item={item}
+          checked={ativacaoFeita.includes(item.id)}
+          onToggle={() => toggleAtivacao(item.id)}
+        />
+      ))}
 
       <FieldLabel>EXERCÍCIOS</FieldLabel>
       {exercicios.map(ex => (
@@ -479,32 +454,20 @@ function FormMobilidade({ data, onChange }) {
   return (
     <>
       <FieldLabel>EXERCÍCIOS FEITOS</FieldLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {MOBILIDADE_EXERCISES.map(ex => {
-          const checked = (data.feitos || []).includes(ex.id)
-          return (
-            <button key={ex.id} onClick={() => toggleEx(ex.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderRadius: 12, border: '2px solid', textAlign: 'left',
-              borderColor: checked ? 'var(--mint-dark)' : 'var(--gray-200)',
-              background: checked ? 'var(--mint)' : '#fff',
-            }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: 6, border: '2px solid',
-                borderColor: checked ? 'var(--mint-dark)' : 'var(--gray-300)',
-                background: checked ? 'var(--mint-dark)' : 'transparent',
-                flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 12,
-              }}>{checked ? '✓' : ''}</div>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400 }}>{ex.label}</span>
-                <span style={{ fontSize: 10, marginLeft: 8, color: PRIORITY_COLORS[ex.priority], fontWeight: 600 }}>{ex.priority}</span>
-              </div>
+      {MOBILIDADE_EXERCISES.map(ex => (
+        <AtivacaoCard
+          key={ex.id}
+          item={ex}
+          checked={(data.feitos || []).includes(ex.id)}
+          onToggle={() => toggleEx(ex.id)}
+          extra={
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, color: PRIORITY_COLORS[ex.priority], fontWeight: 700 }}>{ex.priority}</span>
               <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{ex.time}</span>
-            </button>
-          )
-        })}
-      </div>
+            </span>
+          }
+        />
+      ))}
       <FieldLabel>OBSERVAÇÕES</FieldLabel>
       <textarea value={data.obs || ''} onChange={e => onChange({ ...data, obs: e.target.value })}
         placeholder="Como foi? Algo que sentiu diferente..."
