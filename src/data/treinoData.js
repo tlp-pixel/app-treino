@@ -112,7 +112,7 @@ export const BLOCOS = [
     id: 'treinoA',
     nome: 'Treino A — Glúteos',
     kicker: 'Força · posterior',
-    when: 'Sábado · ~60 min',
+    when: 'Domingo · ~60 min',
     desc: 'O dia do glúteo. Máximo pra força, médio pra estabilidade. É o treino que mais ataca a raiz da tua cadeia — o glúteo que não liga.',
     exercicios: [
       ex({ id: 'a1', prio: 'P1', nome: 'Ponte glútea com barra', tag: 'Glúteo máx', dose: '4×12', anterior: '45 kg · 12 reps',
@@ -156,7 +156,7 @@ export const BLOCOS = [
     id: 'treinoB',
     nome: 'Treino B — Quadríceps',
     kicker: 'Força · pernas',
-    when: 'Segunda · ~55 min',
+    when: 'Quarta · ~55 min',
     desc: 'O dia da perna inteira. Carga nos compostos, vigilância constante com o valgo — o joelho que cai pra dentro é a cadeia falando.',
     exercicios: [
       ex({ id: 'b1', prio: 'P1', nome: 'Agachamento livre', tag: 'Quadríceps', dose: '4×10', anterior: '30 kg · 10 reps',
@@ -200,7 +200,7 @@ export const BLOCOS = [
     id: 'treinoC',
     nome: 'Treino C — Superior',
     kicker: 'Força · tronco',
-    when: 'Quarta · ~55 min',
+    when: 'Sábado · ~55 min',
     desc: 'O dia de cima. Tudo puxa pra trás — costas e parte de trás do ombro — pra desfazer os ombros enrolados e a cifose. Empurrar é o acessório.',
     exercicios: [
       ex({ id: 'c1', prio: 'P1', nome: 'Remada curvada com barra', tag: 'Costas', dose: '4×10', anterior: '30 kg · 10 reps',
@@ -245,19 +245,20 @@ export const BLOCOS = [
 // ---------------------------------------------------------------------------
 // CORRIDA — semana-base, zonas, 3 fases, princípios e plano detalhado 26 sem.
 // ---------------------------------------------------------------------------
-const semana = (dia, treino, g = false) => ({ dia, treino, g })
+// block: id do bloco de academia do dia (abre a sessão) · run: dia de corrida
+const dia = (dia, treino, opts = {}) => ({ dia, treino, g: !!opts.block, block: opts.block || null, run: !!opts.run })
 
 export const CORRIDA = {
   desc: 'O plano vai de base aeróbica a 15k até dezembro, em três fases. FC é o árbitro — o pace é consequência. Cada marco desbloqueia o próximo.',
   regra_flex: 'pode trocar os dias livremente, desde que não emende dois dias pesados (corrida longa, tiro ou perna).',
   semana_base: [
-    semana('Seg', 'Treino B — Quadríceps', true),
-    semana('Ter', 'Pilates + corrida leve'),
-    semana('Qua', 'Treino C — Superior', true),
-    semana('Qui', 'Corrida (treino principal)'),
-    semana('Sex', 'Descanso ou mobilidade'),
-    semana('Sáb', 'Corrida longa + Treino A'),
-    semana('Dom', 'Descanso / rotina diária'),
+    dia('Seg', 'Pilates'),
+    dia('Ter', 'Pilates + corrida leve', { run: true }),
+    dia('Qua', 'Treino B — Quadríceps', { block: 'treinoB' }),
+    dia('Qui', 'Corrida (treino principal)', { run: true }),
+    dia('Sex', 'Descanso ou mobilidade'),
+    dia('Sáb', 'Corrida longa + Treino C — Superior', { block: 'treinoC', run: true }),
+    dia('Dom', 'Treino A — Glúteos', { block: 'treinoA' }),
   ],
   zonas: [
     { zona: '🟢 Leve / Base',     pace: '7:45–8:15/km', fc: '125–140' },
@@ -316,6 +317,19 @@ export const CORRIDA = {
       { n: 26, label: '15–21 dez',    tipo: 'Teste',     ter: 'Leve 6km · 7:30/km', qui: 'Leve 4km · 8:00/km · pernas frescas', sab: '🏆 TESTE FINAL: 15km · pace alvo 6:10/km' },
     ]},
   ],
+}
+
+// Data de início do plano de corrida (semana 1). Usada pra calcular "onde estou".
+export const PLANO_INICIO = '2026-06-22'
+
+// Em que semana (1–26) e fase o plano está hoje.
+export function semanaAtualCorrida() {
+  const inicio = new Date(PLANO_INICIO + 'T00:00:00')
+  const diff = Math.floor((new Date() - inicio) / 86400000 / 7) + 1
+  const n = Math.min(Math.max(diff, 1), 26)
+  let fase = null, semana = null
+  CORRIDA.plano26.forEach(f => f.semanas.forEach(s => { if (s.n === n) { fase = f.fase; semana = s } }))
+  return { n, fase, semana }
 }
 
 // ---------------------------------------------------------------------------

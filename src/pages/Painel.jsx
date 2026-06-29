@@ -13,8 +13,11 @@ export default function Painel({ nav }) {
   const wbIdx = (now.getDay() + 6) % 7 // semana_base é Seg-first
   const todayRow = CORRIDA.semana_base[wbIdx]
   const todayTxt = todayRow.treino
-  const isRunDay = /corrida/i.test(todayTxt)
-  const gymBlock = /Treino A/.test(todayTxt) ? 'treinoA' : /Treino B/.test(todayTxt) ? 'treinoB' : /Treino C/.test(todayTxt) ? 'treinoC' : null
+  const isRunDay = todayRow.run
+  const gymBlock = todayRow.block
+
+  // tocar num dia vai direto pro ponto: treino → sessão; corrida → aba corrida; senão → rotina diária
+  const destino = (w) => () => w.block ? nav.openBlock(w.block) : w.run ? nav.go('corrida') : nav.openBlock('diaria')
 
   let primaryLabel, primaryAction, secondaryLabel, secondaryAction, todaySub
   if (isRunDay) {
@@ -82,14 +85,15 @@ export default function Painel({ nav }) {
           {CORRIDA.semana_base.map((w, i) => {
             const hoje = i === wbIdx
             return (
-              <div key={w.dia} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
+              <div key={w.dia} onClick={destino(w)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                 background: hoje ? 'var(--ink)' : '#fff', border: '1px solid var(--border)',
                 borderLeft: `3px solid ${hoje ? 'var(--terracotta)' : (w.g ? 'var(--gold)' : 'var(--border)')}`,
                 borderRadius: 10, padding: '9px 12px',
               }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, flex: '0 0 34px', color: hoje ? 'var(--peach)' : (w.g ? 'var(--gold)' : 'var(--faint)') }}>{w.dia}</span>
-                <span style={{ fontSize: 13, lineHeight: 1.35, color: hoje ? 'var(--surface)' : 'var(--ink-soft)' }}>{w.treino}</span>
+                <span style={{ flex: 1, fontSize: 13, lineHeight: 1.35, color: hoje ? 'var(--surface)' : 'var(--ink-soft)' }}>{w.treino}</span>
+                <span style={{ fontSize: 13, color: hoje ? 'var(--peach)' : 'var(--faint)' }}>›</span>
               </div>
             )
           })}

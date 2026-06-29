@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import { useTreino } from '../store/TreinoContext.jsx'
-import { CORRIDA } from '../data/treinoData.js'
+import { BLOCOS, CORRIDA } from '../data/treinoData.js'
 import { isoToCurto, hojeISO } from '../hooks/useStorage.js'
 import { SectionLabel, Mono, Serif } from '../components/ui.jsx'
 
 export default function Progresso({ nav }) {
   const { store, streak, totalSessoes, runsCount, dias14, trend, toggleMarco } = useTreino()
   const [retroIso, setRetroIso] = useState(hojeISO())
+
+  // progresso por bloco: quantas sessões e a última (history vem do mais novo)
+  const porBloco = BLOCOS.map(b => {
+    const hist = store.history.filter(h => h.bloco === b.id)
+    const ultima = hist[0]
+    return { id: b.id, nome: b.nome, count: hist.length, ultima }
+  })
 
   return (
     <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -30,6 +37,25 @@ export default function Progresso({ nav }) {
         <div style={{ display: 'flex', gap: 5 }}>
           {dias14.map((on, i) => (
             <div key={i} style={{ flex: 1, height: 30, borderRadius: 5, background: on ? 'var(--terracotta)' : '#F0E8DB', border: `1px solid ${on ? 'var(--terracotta)' : 'var(--border)'}` }} />
+          ))}
+        </div>
+      </div>
+
+      {/* progresso por bloco */}
+      <div>
+        <SectionLabel>Por bloco</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {porBloco.map(b => (
+            <div key={b.id} onClick={() => nav.openBlock(b.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{b.nome}</div>
+                <Mono size={11} color="var(--faint)">
+                  {b.count === 0 ? 'ainda não registrado' : `${b.count} ${b.count === 1 ? 'sessão' : 'sessões'} · última ${b.ultima.data}`}
+                </Mono>
+              </div>
+              {b.ultima && <Mono size={12} color="var(--green)" weight={700}>{b.ultima.done}/{b.ultima.total}</Mono>}
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--faint)' }}>›</span>
+            </div>
           ))}
         </div>
       </div>

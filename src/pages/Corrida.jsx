@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTreino } from '../store/TreinoContext.jsx'
-import { CORRIDA } from '../data/treinoData.js'
+import { CORRIDA, semanaAtualCorrida } from '../data/treinoData.js'
 import { SectionLabel, Mono, Serif } from '../components/ui.jsx'
 
 const EMPTY = { dist: '', tempo: '', pace: '', fc: '', nota: '' }
@@ -17,9 +17,10 @@ function DarkField({ label, value, onChange, placeholder, inputMode }) {
 
 export default function Corrida() {
   const { store, addRun, toggleMarco } = useTreino()
+  const atual = semanaAtualCorrida()
   const [form, setForm] = useState(EMPTY)
   const [strava, setStrava] = useState(false)
-  const [faseAberta, setFaseAberta] = useState(null)
+  const [faseAberta, setFaseAberta] = useState(atual.n) // semana de hoje já abre expandida
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
 
   const onAdd = () => { addRun(form); setForm(EMPTY); setStrava(false) }
@@ -111,6 +112,16 @@ export default function Corrida() {
       {/* plano detalhado 26 semanas */}
       <div>
         <SectionLabel>Plano detalhado · 26 semanas</SectionLabel>
+        <div style={{ background: 'var(--ink)', color: 'var(--surface)', borderRadius: 12, padding: '12px 15px', marginBottom: 10 }}>
+          <Mono size={10} color="var(--peach)" style={{ letterSpacing: '.1em', textTransform: 'uppercase' }}>Você está na</Mono>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
+            <Serif size={20} color="var(--surface)">Semana {atual.n}</Serif>
+            <Mono size={11} color="#C9C0B5">de 26 · {atual.fase}</Mono>
+          </div>
+          <div style={{ height: 5, background: 'rgba(255,255,255,.15)', borderRadius: 3, overflow: 'hidden', marginTop: 9 }}>
+            <div style={{ height: '100%', width: `${Math.round(atual.n / 26 * 100)}%`, background: 'var(--terracotta)', borderRadius: 3 }} />
+          </div>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {CORRIDA.plano26.map(fase => (
             <div key={fase.fase}>
@@ -118,11 +129,13 @@ export default function Corrida() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {fase.semanas.map(s => {
                   const aberta = faseAberta === s.n
+                  const agora = s.n === atual.n
                   return (
-                    <div key={s.n} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div key={s.n} style={{ background: agora ? 'var(--sand)' : '#fff', border: `1px solid ${agora ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 10, overflow: 'hidden' }}>
                       <button onClick={() => setFaseAberta(aberta ? null : s.n)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '10px 13px', background: 'transparent', textAlign: 'left' }}>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, flex: '0 0 28px' }}>S{s.n}</span>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, flex: '0 0 28px', color: agora ? 'var(--gold)' : 'var(--ink)' }}>S{s.n}</span>
                         <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-soft)' }}>{s.label}</span>
+                        {agora && <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#fff', background: 'var(--terracotta)', borderRadius: 10, padding: '1px 7px' }}>agora</span>}
                         {s.tipo && <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: s.tipo === 'Teste' ? 'var(--terracotta)' : 'var(--blue)', border: `1px solid ${s.tipo === 'Teste' ? 'var(--terracotta)' : 'var(--blue)'}`, borderRadius: 10, padding: '1px 7px' }}>{s.tipo}</span>}
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--faint)' }}>{aberta ? '▴' : '▾'}</span>
                       </button>
