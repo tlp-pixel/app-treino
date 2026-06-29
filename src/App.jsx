@@ -14,19 +14,33 @@ const TITULOS = { painel: 'Painel', treinos: 'Treinos', corrida: 'Corrida', prog
 
 function Shell() {
   const { streak } = useTreino()
-  const [tab, setTab] = useState('painel')
-  const [activeBlock, setActiveBlock] = useState(null)
-  const [retro, setRetro] = useState(null) // { iso, label } | null
+  // navegação por estado + pilha de histórico (pra ter "voltar" em qualquer tela)
+  const [view, setView] = useState({ tab: 'painel', activeBlock: null, retro: null })
+  const [hist, setHist] = useState([])
+  const { tab, activeBlock, retro } = view
 
   const inSession = tab === 'treinos' && !!activeBlock
   const blocoObj = activeBlock ? BLOCOS.find(b => b.id === activeBlock) : null
 
+  // navega empilhando a tela atual no histórico (ignora no-op)
+  const go = (patch) => {
+    const next = { tab: view.tab, activeBlock: null, retro: null, ...patch }
+    if (next.tab === view.tab && next.activeBlock === view.activeBlock && next.retro === view.retro) return
+    setHist(h => [...h, view])
+    setView(next)
+  }
+  const back = () => {
+    if (!hist.length) return
+    setView(hist[hist.length - 1])
+    setHist(hist.slice(0, -1))
+  }
+
   const nav = {
-    go: (t) => { setTab(t); setActiveBlock(null) },
-    openBlock: (id) => { setTab('treinos'); setActiveBlock(id) },
-    closeSession: () => setActiveBlock(null),
-    startRetro: (r) => { setRetro(r); setTab('treinos'); setActiveBlock(null) },
-    cancelRetro: () => setRetro(null),
+    go: (t) => go({ tab: t }),
+    openBlock: (id) => go({ tab: 'treinos', activeBlock: id }),
+    closeSession: back,
+    startRetro: (r) => go({ tab: 'treinos', retro: r }),
+    cancelRetro: () => setView(v => ({ ...v, retro: null })),
     retro,
   }
 
@@ -35,7 +49,7 @@ function Shell() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 480, minHeight: '100vh', background: 'var(--surface)', position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: '0 0 80px rgba(42,38,34,.10)' }}>
-        <TopBar title={title} streak={streak} inSession={inSession} onBack={nav.closeSession} />
+        <TopBar title={title} streak={streak} canBack={hist.length > 0} onBack={back} />
         <div className="scrl" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '0 0 92px' }}>
           {tab === 'painel' && <Painel nav={nav} />}
           {tab === 'treinos' && !inSession && <Treinos nav={nav} />}

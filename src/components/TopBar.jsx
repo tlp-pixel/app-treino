@@ -1,4 +1,4 @@
-export default function TopBar({ title, streak, inSession, onBack }) {
+export default function TopBar({ title, streak, canBack, onBack }) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 30,
@@ -6,7 +6,7 @@ export default function TopBar({ title, streak, inSession, onBack }) {
       borderBottom: '1px solid var(--border)', padding: '13px 18px 11px',
       display: 'flex', alignItems: 'center', gap: 12,
     }}>
-      {inSession && (
+      {canBack && (
         <button onClick={onBack} style={{
           border: '1px solid var(--border)', background: '#fff', color: 'var(--ink)',
           width: 34, height: 34, borderRadius: 10, fontSize: 17, lineHeight: 1, flex: '0 0 auto',
