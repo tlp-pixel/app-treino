@@ -1,75 +1,96 @@
-// Salva e lê treinos do localStorage (fallback enquanto Google Sheets não está configurado)
-// Cada treino: { id, date, type, data }
+// Persistência local do app (modelo "Fonte da Verdade", v2).
+// Store: { cur, prev, runs, history, marcos }
+//  - cur:     inputs da sessão em andamento, por exercício (persistido p/ retomar)
+//  - prev:    { [exId]: "resumo da última vez" } — alimenta o "Anterior ·"
+//  - runs:    [{ id, iso, data, dist, tempo, pace, fc, nota }]
+//  - history: [{ id, iso, data, bloco, nome, done, total, registros:[...] }]
+//  - marcos:  [bool, bool, bool] — marcos de corrida desbloqueados
 
-const KEY = 'treinos_thali'
+const KEY = 'thali-treino-v2'
 
-export function getTreinos() {
+export function emptyStore() {
+  return { cur: {}, prev: {}, runs: [], history: [], marcos: [false, false, false] }
+}
+
+export function loadStore() {
   try {
-    return JSON.parse(localStorage.getItem(KEY) || '[]')
-  } catch { return [] }
+    const raw = JSON.parse(localStorage.getItem(KEY))
+    if (raw && typeof raw === 'object') return { ...emptyStore(), ...raw }
+  } catch { /* ignora */ }
+  return emptyStore()
 }
 
-export function saveTreino(treino) {
-  const all = getTreinos()
-  const idx = all.findIndex(t => t.id === treino.id)
-  if (idx >= 0) all[idx] = treino
-  else all.unshift(treino)
-  localStorage.setItem(KEY, JSON.stringify(all))
+export function saveStore(store) {
+  try { localStorage.setItem(KEY, JSON.stringify(store)) } catch { /* ignora */ }
 }
 
-export function deleteTreino(id) {
-  const all = getTreinos().filter(t => t.id !== id)
-  localStorage.setItem(KEY, JSON.stringify(all))
+// store está "vazio" = nunca registrou nada aqui (gatilho de recuperação via Sheets)
+export function isEmptyStore(s) {
+  return !s || ((s.history || []).length === 0 && (s.runs || []).length === 0)
 }
 
-// Junta treinos vindos do Google Sheets com os que já existem localmente.
-// Nunca sobrescreve um registro local (pra não perder edição feita offline) —
-// só adiciona de volta os que faltam aqui (recuperação após perda de dados locais).
-export function mergeTreinos(remoteTreinos) {
-  if (!Array.isArray(remoteTreinos) || !remoteTreinos.length) return 0
-  const all = getTreinos()
-  const localIds = new Set(all.map(t => t.id))
-  let added = 0
-  for (const t of remoteTreinos) {
-    if (!t?.id || localIds.has(t.id)) continue
-    all.push(t)
-    localIds.add(t.id)
-    added++
-  }
-  if (added) localStorage.setItem(KEY, JSON.stringify(all))
-  return added
+// ---- helpers de data ----
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+export function hojeISO() { return new Date().toISOString().slice(0, 10) }
+export function isoToCurto(iso) {
+  const d = new Date(iso + 'T12:00:00')
+  return d.getDate() + ' ' + MESES[d.getMonth()]
 }
+export function hojeCurto() { return isoToCurto(hojeISO()) }
 
-export function getTreinosByMonth(year, month) {
-  return getTreinos().filter(t => {
-    const d = new Date(t.date + 'T12:00:00')
-    return d.getFullYear() === year && d.getMonth() === month
-  })
-}
+// ---- derivados (não persistidos) ----
 
-// Retorna o array de cargas por série usadas da última vez que esse exercício
-// foi registrado nesse treino (a/b/c), ou null se nunca foi registrado.
-export function getUltimaSerie(treinoKey, exId) {
-  const all = getTreinos()
-    .filter(t => t.type === 'academia' && t.data?.treino === treinoKey && t.data?.series?.[exId]?.some(v => v))
-    .sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt))
-  return all.length ? all[0].data.series[exId] : null
-}
-
-export function getStreak() {
-  const all = getTreinos()
-  if (!all.length) return 0
-  const dates = [...new Set(all.map(t => t.date))].sort().reverse()
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-  if (dates[0] !== today && dates[0] !== yesterday) return 0
+// streak = dias consecutivos com atividade (sessão OU corrida), terminando
+// hoje ou ontem.
+export function computeStreak(store) {
+  const dias = [...new Set([...(store.history || []), ...(store.runs || [])].map(e => e.iso).filter(Boolean))].sort().reverse()
+  if (!dias.length) return 0
+  const hoje = hojeISO()
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (dias[0] !== hoje && dias[0] !== ontem) return 0
   let streak = 0
-  let cur = new Date(dates[0] + 'T12:00:00')
-  for (const d of dates) {
+  let cur = new Date(dias[0] + 'T12:00:00')
+  for (const d of dias) {
     const dd = new Date(d + 'T12:00:00')
     const diff = Math.round((cur - dd) / 86400000)
     if (diff > 1) break
-    if (diff <= 1) { streak++; cur = dd }
+    streak++
+    cur = dd
   }
   return streak
+}
+
+// 14 dias de atividade pro heatmap do Progresso (mais antigo → hoje)
+export function computeDias14(store) {
+  const ativos = new Set([...(store.history || []), ...(store.runs || [])].map(e => e.iso).filter(Boolean))
+  const out = []
+  for (let i = 13; i >= 0; i--) {
+    const iso = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+    out.push(ativos.has(iso))
+  }
+  return out
+}
+
+// Tendência de carga dos principais compostos, a partir do histórico real.
+const COMPOSTOS = ['Ponte glútea com barra', 'Deadlift romeno', 'Agachamento livre', 'Leg press 45°', 'Remada curvada com barra', 'Agachamento búlgaro']
+export function computeTrend(store, unidade = 'kg') {
+  const porNome = {}
+  // history vem do mais novo pro mais antigo; invertemos pra ordem cronológica
+  ;[...(store.history || [])].reverse().forEach(h => {
+    (h.registros || []).forEach(r => {
+      if (r.kind !== 'peso') return
+      const val = parseFloat(r.carga || r.cargaDir || r.cargaEsq)
+      if (!val || !COMPOSTOS.includes(r.nome)) return
+      ;(porNome[r.nome] = porNome[r.nome] || []).push(val)
+    })
+  })
+  return Object.keys(porNome).map(nome => {
+    const arr = porNome[nome].slice(-6)
+    const max = Math.max(...arr, 1)
+    return {
+      nome,
+      atual: arr[arr.length - 1] + ' ' + unidade,
+      bars: arr.map((v, i) => ({ h: Math.round((v / max) * 100), ultima: i === arr.length - 1 })),
+    }
+  })
 }

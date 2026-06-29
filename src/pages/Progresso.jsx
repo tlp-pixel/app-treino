@@ -1,195 +1,95 @@
-import { useMemo } from 'react'
-import { getTreinos } from '../hooks/useStorage.js'
-import Card from '../components/Card.jsx'
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, Legend
-} from 'recharts'
+import { useState } from 'react'
+import { useTreino } from '../store/TreinoContext.jsx'
+import { CORRIDA } from '../data/treinoData.js'
+import { isoToCurto, hojeISO } from '../hooks/useStorage.js'
+import { SectionLabel, Mono, Serif } from '../components/ui.jsx'
 
-function paceToMinutes(pace) {
-  if (!pace) return null
-  const parts = pace.toString().replace(',', ':').split(':')
-  if (parts.length === 2) return parseFloat(parts[0]) + parseFloat(parts[1]) / 60
-  return parseFloat(pace)
-}
-
-function minutesToPace(min) {
-  if (!min) return '—'
-  const m = Math.floor(min)
-  const s = Math.round((min - m) * 60)
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
-const ZONE_LABELS = { leve: '🟢 Leve', ritmo: '🟡 Ritmo', tiro: '🔴 Tiro', alvo: '🏁 Alvo 10k' }
-const MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
-
-export default function Progresso() {
-  const treinos = getTreinos()
-
-  const corridas = useMemo(() =>
-    treinos
-      .filter(t => t.type === 'corrida' && t.data?.distancia)
-      .map(t => ({
-        date: t.date,
-        label: new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        distancia: parseFloat(t.data.distancia),
-        paceMin: paceToMinutes(t.data.pace),
-        pace: t.data.pace,
-        zona: t.data.zona,
-        fc: t.data.fc ? parseInt(t.data.fc) : null,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-20)
-  , [treinos])
-
-  const totalKm = useMemo(() =>
-    treinos.filter(t => t.type === 'corrida' && t.data?.distancia)
-      .reduce((sum, t) => sum + parseFloat(t.data.distancia || 0), 0)
-  , [treinos])
-
-  const totalTreinos = treinos.length
-  const totalCorridas = treinos.filter(t => t.type === 'corrida').length
-  const totalPilates = treinos.filter(t => t.type === 'pilates').length
-  const totalAcademia = treinos.filter(t => t.type === 'academia').length
-
-  const checklistStats = useMemo(() => {
-    const counts = {}
-    treinos.filter(t => t.type === 'pilates').forEach(t => {
-      (t.data?.checks || []).forEach(id => { counts[id] = (counts[id] || 0) + 1 })
-    })
-    return counts
-  }, [treinos])
-
-  const zonasCounts = useMemo(() => {
-    const counts = { leve: 0, ritmo: 0, tiro: 0, alvo: 0 }
-    treinos.filter(t => t.type === 'corrida').forEach(t => {
-      if (t.data?.zona) counts[t.data.zona] = (counts[t.data.zona] || 0) + 1
-    })
-    return Object.entries(counts).map(([zona, count]) => ({ zona: ZONE_LABELS[zona] || zona, count }))
-  }, [treinos])
-
-  const CustomTooltipPace = ({ active, payload }) => {
-    if (!active || !payload?.length) return null
-    const d = payload[0].payload
-    return (
-      <div style={{ background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
-        <p style={{ fontWeight: 700 }}>{d.label}</p>
-        <p>Pace: <strong>{d.pace}/km</strong></p>
-        <p>Distância: <strong>{d.distancia} km</strong></p>
-        {d.fc && <p>FC: <strong>{d.fc} bpm</strong></p>}
-      </div>
-    )
-  }
+export default function Progresso({ nav }) {
+  const { store, streak, totalSessoes, runsCount, dias14, trend, toggleMarco } = useTreino()
+  const [retroIso, setRetroIso] = useState(hojeISO())
 
   return (
-    <div style={{ padding: '24px 16px 100px' }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Progresso</h2>
-
-      {/* Totais */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <Card color="var(--mint)" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#2a6648' }}>{totalKm.toFixed(1)}</div>
-          <div style={{ fontSize: 11, color: '#2a6648', fontWeight: 600 }}>km rodados total</div>
-        </Card>
-        <Card color="var(--pink)" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#c0556e' }}>{totalTreinos}</div>
-          <div style={{ fontSize: 11, color: '#c0556e', fontWeight: 600 }}>treinos registrados</div>
-        </Card>
-        <Card color="var(--lavender)" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#4a3a6e' }}>{totalPilates}</div>
-          <div style={{ fontSize: 11, color: '#4a3a6e', fontWeight: 600 }}>aulas de pilates</div>
-        </Card>
-        <Card color="var(--peach)" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#6e4a2a' }}>{totalAcademia}</div>
-          <div style={{ fontSize: 11, color: '#6e4a2a', fontWeight: 600 }}>treinos academia</div>
-        </Card>
+    <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* stats */}
+      <div style={{ display: 'flex', gap: 9 }}>
+        <div style={{ flex: 1, background: 'var(--ink)', color: 'var(--surface)', borderRadius: 14, padding: 15, textAlign: 'center' }}>
+          <Serif size={30} weight={600} color="var(--surface)">{streak}</Serif>
+          <Mono size={9} color="#C9C0B5" style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>dias seguidos</Mono>
+        </div>
+        {[[totalSessoes, 'sessões'], [runsCount, 'corridas']].map(([n, l]) => (
+          <div key={l} style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 15, textAlign: 'center' }}>
+            <Serif size={30} weight={600}>{n}</Serif>
+            <Mono size={9} color="var(--faint)" style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>{l}</Mono>
+          </div>
+        ))}
       </div>
 
-      {/* Gráfico distância */}
-      {corridas.length > 1 && (
-        <Card style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 16 }}>EVOLUÇÃO — DISTÂNCIA (km)</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={corridas} margin={{ left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip content={<CustomTooltipPace />} />
-              <Bar dataKey="distancia" fill="var(--mint-dark)" radius={[4, 4, 0, 0]} name="km" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
-
-      {/* Gráfico pace */}
-      {corridas.length > 1 && corridas.some(c => c.paceMin) && (
-        <Card style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 4 }}>EVOLUÇÃO — PACE (min/km)</p>
-          <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>Linha descendo = você ficando mais rápida 🚀</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={corridas} margin={{ left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={minutesToPace} domain={['auto', 'auto']} reversed />
-              <Tooltip content={<CustomTooltipPace />} />
-              <Line type="monotone" dataKey="paceMin" stroke="var(--pink-dark)" strokeWidth={2.5} dot={{ fill: 'var(--pink-dark)', r: 4 }} name="pace" connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
-
-      {/* Zonas */}
-      {zonasCounts.some(z => z.count > 0) && (
-        <Card style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 12 }}>DISTRIBUIÇÃO DE ZONAS</p>
-          {zonasCounts.map(({ zona, count }) => (
-            <div key={zona} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 13, width: 120, flexShrink: 0 }}>{zona}</span>
-              <div style={{ flex: 1, height: 12, background: 'var(--gray-100)', borderRadius: 6, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: 6, background: 'var(--mint-dark)',
-                  width: `${(count / Math.max(...zonasCounts.map(z => z.count), 1)) * 100}%`,
-                  transition: 'width 0.5s',
-                }} />
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--gray-600)', width: 24, textAlign: 'right' }}>{count}x</span>
-            </div>
+      {/* atividade 14 dias */}
+      <div>
+        <SectionLabel>Atividade · 14 dias</SectionLabel>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {dias14.map((on, i) => (
+            <div key={i} style={{ flex: 1, height: 30, borderRadius: 5, background: on ? 'var(--terracotta)' : '#F0E8DB', border: `1px solid ${on ? 'var(--terracotta)' : 'var(--border)'}` }} />
           ))}
-        </Card>
-      )}
+        </div>
+      </div>
 
-      {/* Checklist postural Pilates */}
-      {Object.keys(checklistStats).length > 0 && (
-        <Card>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', marginBottom: 12 }}>PILATES — CHECKLIST POSTURAL (total de vezes trabalhado)</p>
-          {Object.entries(checklistStats).sort((a, b) => b[1] - a[1]).map(([id, count]) => {
-            const labels = {
-              cadeia_post: 'Cadeia posterior', escapula: 'Escápulas', iliopsoas: 'Iliopsoas',
-              peitoral: 'Peitoral', gluteo_med: 'Glúteo médio', core: 'Core / lombar',
-              pronacao: 'Pronação dos pés', cervical: 'Postura cervical',
-            }
-            return (
-              <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, width: 130, flexShrink: 0 }}>{labels[id] || id}</span>
-                <div style={{ flex: 1, height: 10, background: 'var(--gray-100)', borderRadius: 6, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', borderRadius: 6, background: 'var(--lavender)',
-                    width: `${(count / Math.max(...Object.values(checklistStats), 1)) * 100}%`,
-                  }} />
+      {/* tendência de carga */}
+      <div>
+        <SectionLabel>Carga · principais compostos</SectionLabel>
+        {trend.length === 0 ? (
+          <div style={{ background: '#fff', border: '1px dashed var(--border)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--faint)', textAlign: 'center' }}>
+            Registre sessões com carga pra ver a evolução dos compostos aqui.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {trend.map(t => (
+              <div key={t.nome} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 9 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t.nome}</span>
+                  <Mono size={12} color="var(--terracotta)">{t.atual}</Mono>
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--gray-600)', width: 24, textAlign: 'right' }}>{count}x</span>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 42 }}>
+                  {t.bars.map((b, i) => (
+                    <div key={i} style={{ flex: 1, height: `${b.h}%`, minHeight: 5, background: b.ultima ? 'var(--terracotta)' : '#E0BFA0', borderRadius: '4px 4px 0 0' }} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* marcos */}
+      <div>
+        <SectionLabel>Marcos de corrida</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {CORRIDA.fases.map((f, i) => {
+            const on = store.marcos[i]
+            return (
+              <div key={f.n} style={{ display: 'flex', alignItems: 'center', gap: 11, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 14px' }}>
+                <button onClick={() => toggleMarco(i)} style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${on ? 'var(--green)' : 'var(--gold)'}`, background: on ? 'var(--green)' : '#fff', color: '#fff', fontSize: 13, lineHeight: 1, flex: '0 0 auto' }}>{on ? '✓' : ''}</button>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{f.n} · {f.nome}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 }}>{f.marco}</div>
+                </div>
               </div>
             )
           })}
-        </Card>
-      )}
-
-      {totalTreinos === 0 && (
-        <div style={{ textAlign: 'center', marginTop: 60, color: 'var(--gray-400)' }}>
-          <p style={{ fontSize: 40 }}>📊</p>
-          <p style={{ fontSize: 15, marginTop: 12 }}>Registre seus primeiros treinos<br />para ver seu progresso aqui!</p>
         </div>
-      )}
+      </div>
+
+      {/* registro retroativo */}
+      <div style={{ background: 'var(--blue-bg)', border: '1px solid #cdd9e2', borderRadius: 14, padding: 16 }}>
+        <SectionLabel color="var(--blue)" style={{ marginBottom: 8 }}>Registro retroativo</SectionLabel>
+        <div style={{ fontSize: 13, color: '#3a4a57', lineHeight: 1.5, marginBottom: 11 }}>Esqueceu de marcar? Escolhe a data e registra o treino depois.</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="date" value={retroIso} onChange={e => setRetroIso(e.target.value)}
+            style={{ flex: 1, border: '1px solid #cdd9e2', background: '#fff', borderRadius: 8, padding: '9px 10px', fontFamily: 'var(--mono)', fontSize: 12 }} />
+          <button onClick={() => nav.startRetro({ iso: retroIso, label: isoToCurto(retroIso) })}
+            style={{ background: 'var(--blue)', color: '#fff', borderRadius: 8, padding: '9px 14px', fontFamily: 'var(--mono)', fontSize: 12, whiteSpace: 'nowrap' }}>Registrar</button>
+        </div>
+      </div>
     </div>
   )
 }

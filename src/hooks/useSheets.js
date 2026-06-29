@@ -1,15 +1,18 @@
-// Integração com Google Sheets via Apps Script Web App
-// Configure SHEETS_URL em src/config.js após seguir o guia de setup
+// Backup no Google Sheets via Apps Script Web App.
+// O app envia o store inteiro; o Apps Script reescreve as abas legíveis
+// (sessoes / corridas / marcos) — formato data / treino / exercício / série / peso.
+// Guia e código do script: SETUP_SHEETS.md.
 
-import { SHEETS_URL } from '../config.js'
+export const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxaiG8ui4a6FRG3EGeg7x439e47cJloil75xrbVx5K0Nst7_UkGQRXp8xEJvfNmHw0/exec'
 
-export async function pushToSheets(treino) {
+// Envia o estado completo (fire-and-forget). O script reescreve as abas.
+export async function syncToSheets(store) {
   if (!SHEETS_URL) return { ok: false, reason: 'not_configured' }
   try {
     const res = await fetch(SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(treino),
+      body: JSON.stringify({ type: 'sync', store }),
     })
     const text = await res.text()
     return { ok: text.includes('OK'), raw: text }
@@ -18,13 +21,20 @@ export async function pushToSheets(treino) {
   }
 }
 
-// Busca os treinos guardados na planilha (formato { id, date, type, data, createdAt }[])
-// para recuperar dados em caso de perda do armazenamento local do navegador.
-export async function fetchFromSheets() {
+// Recupera o store reconstruído da planilha (usado quando o armazenamento
+// local foi perdido — ex: iOS limpando dados do site).
+export async function fetchStore() {
   if (!SHEETS_URL) return null
   try {
     const res = await fetch(SHEETS_URL + '?action=getAll')
     const json = await res.json()
-    return Array.isArray(json?.treinos) ? json.treinos : null
+    if (json && (Array.isArray(json.history) || Array.isArray(json.runs))) {
+      return {
+        cur: {}, prev: json.prev || {},
+        runs: json.runs || [], history: json.history || [],
+        marcos: json.marcos || [false, false, false],
+      }
+    }
+    return null
   } catch { return null }
 }
