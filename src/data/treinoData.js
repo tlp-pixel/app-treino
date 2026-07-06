@@ -384,3 +384,48 @@ export const CAVEAT = 'Esse app organiza a tua ficha da AGC (fev/2025) e o plano
 
 export const DATA = { BLOCOS, CORRIDA, CADEIA, PRIO, TRIAGEM, PRINCIPIOS, PENDENTES, CAVEAT }
 export default DATA
+
+// ---------------------------------------------------------------------------
+// Séries + edição por markdown dos treinos A/B/C
+// ---------------------------------------------------------------------------
+
+// Quantas séries a partir do "dose" (ex: "4×12" → 4). Sem número → 1.
+export function parseSeries(dose) {
+  const m = String(dose || '').match(/^(\d+)\s*[×xX]/)
+  return m ? parseInt(m[1], 10) : 1
+}
+
+// Serializa os exercícios de um bloco numa tabela markdown (pra pré-preencher o editor).
+export function blocoParaMD(bloco) {
+  const linhas = (bloco.exercicios || []).map(e => {
+    const m = String(e.dose || '').match(/^(\d+)\s*[×xX]\s*(.*)$/)
+    const series = m ? m[1] : ''
+    const reps = m ? m[2] : (e.dose || '')
+    return `| ${e.nome} | ${series} | ${reps} | ${e.porque || ''} | ${e.como || ''} |`
+  })
+  return ['| Exercício | Séries | Reps | Por quê | Como |', '|---|---|---|---|---|', ...linhas].join('\n')
+}
+
+// Faz o parse de uma tabela markdown em exercícios. Aceita `| a | b |` ou `a | b | c`.
+export function parseTreinoMD(md, blockId) {
+  const p = PRIO.P1
+  const out = []
+  String(md || '').split('\n').forEach(raw => {
+    if ((raw.match(/\|/g) || []).length < 2) return
+    const cells = raw.split('|').map(c => c.trim())
+    if (cells[0] === '') cells.shift()
+    if (cells[cells.length - 1] === '') cells.pop()
+    if (!cells.length || !cells[0]) return
+    if (cells[0].toLowerCase().startsWith('exerc')) return           // cabeçalho
+    if (/^-+$/.test(cells[0].replace(/\s/g, ''))) return             // separador ---
+    const [nome, series, reps, porque, como] = cells
+    const dose = series ? `${series}×${reps || ''}`.replace(/×\s*$/, '') : (reps || '—')
+    out.push({
+      id: `${blockId}-c${out.length}`, nome, dose,
+      prio: 'P1', tag: '', kind: 'peso', lado: false,
+      como: como || '', atencao: '', porque: porque || '', tiktok: null,
+      cor: p.cor, bg: p.bg,
+    })
+  })
+  return out
+}

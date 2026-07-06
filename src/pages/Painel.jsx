@@ -6,7 +6,7 @@ import { SectionLabel, Mono, Serif, Card } from '../components/ui.jsx'
 const DIAS_L = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 export default function Painel({ nav }) {
-  const { store, streak, totalSessoes, runsCount } = useTreino()
+  const { store, streak, totalSessoes, corridasFeitas } = useTreino()
   const [tri, setTri] = useState(null)
 
   const now = new Date()
@@ -21,7 +21,7 @@ export default function Painel({ nav }) {
 
   let primaryLabel, primaryAction, secondaryLabel, secondaryAction, todaySub
   if (isRunDay) {
-    primaryLabel = 'Registrar corrida'; primaryAction = () => nav.go('corrida')
+    primaryLabel = 'Ir pro plano de corrida'; primaryAction = () => nav.go('corrida')
     secondaryLabel = 'Ativação pré-corrida'; secondaryAction = () => nav.openBlock('ativacoes')
     todaySub = 'A ativação pré-corrida (glúteo médio + arco esquerdo) é P0 — é o que impede o QL de compensar.'
   } else if (gymBlock) {
@@ -136,7 +136,7 @@ export default function Painel({ nav }) {
 
       {/* stats */}
       <div style={{ display: 'flex', gap: 9 }}>
-        {[[streak, 'streak'], [totalSessoes, 'sessões'], [runsCount, 'corridas']].map(([n, l]) => (
+        {[[streak, 'streak'], [totalSessoes, 'sessões'], [corridasFeitas, 'corridas']].map(([n, l]) => (
           <div key={l} style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: 13, textAlign: 'center' }}>
             <Serif size={26} weight={600}>{n}</Serif>
             <Mono size={9.5} color="var(--faint)" style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>{l}</Mono>

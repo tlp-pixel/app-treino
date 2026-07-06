@@ -1,9 +1,8 @@
 import { useTreino } from '../store/TreinoContext.jsx'
-import { BLOCOS } from '../data/treinoData.js'
 import { Serif, Mono } from '../components/ui.jsx'
 
 export default function Treinos({ nav }) {
-  const { store } = useTreino()
+  const { store, blocos } = useTreino()
 
   return (
     <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -14,7 +13,7 @@ export default function Treinos({ nav }) {
         </div>
       )}
 
-      {BLOCOS.map(b => {
+      {blocos.map(b => {
         const done = b.exercicios.filter(e => store.cur[e.id] && store.cur[e.id].done).length
         const p0 = b.exercicios.filter(e => e.prio === 'P0').length
         return (
@@ -31,6 +30,11 @@ export default function Treinos({ nav }) {
           </div>
         )
       })}
+
+      <button onClick={nav.openEditor} style={{
+        marginTop: 4, background: 'transparent', border: '1px dashed var(--border)',
+        color: 'var(--muted)', borderRadius: 12, padding: '12px', fontFamily: 'var(--mono)', fontSize: 12,
+      }}>✎ Editar exercícios dos treinos A/B/C</button>
     </div>
   )
 }

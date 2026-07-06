@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { BLOCOS } from '../data/treinoData.js'
+import { BLOCOS, parseTreinoMD } from '../data/treinoData.js'
 import {
   loadStore, saveStore, emptyStore, isEmptyStore, hojeISO, isoToCurto,
   computeStreak, computeDias14, computeTrend,
@@ -9,12 +9,18 @@ import { syncToSheets, fetchStore } from '../hooks/useSheets.js'
 const Ctx = createContext(null)
 export const useTreino = () => useContext(Ctx)
 
-// Resumo curto da última vez (alimenta o "Anterior ·")
+// Resumo curto da última vez (alimenta o "Anterior ·"), a partir das séries.
 function fmtPrev(c, ex, unidade) {
   if (ex.kind === 'peso') {
-    const load = ex.lado
-      ? 'E ' + (c.cargaEsq || '–') + '/D ' + (c.cargaDir || '–') + ' ' + unidade
-      : (c.carga || '–') + ' ' + unidade
+    const s = c.series || []
+    let load
+    if (ex.lado) {
+      const e = s.map(x => (x && x.e) || '–').join('/')
+      const d = s.map(x => (x && x.d) || '–').join('/')
+      load = `E ${e} · D ${d} ${unidade}`
+    } else {
+      load = (s.some(Boolean) ? s.map(x => x || '–').join('/') : '–') + ' ' + unidade
+    }
     return load + (c.reps ? ' · ' + c.reps + ' reps' : '') + (c.rpe ? ' · RPE ' + c.rpe : '')
   }
   return (c.medida || 'feito') + (c.rpe ? ' · RPE ' + c.rpe : '')
@@ -30,12 +36,11 @@ export function TreinoProvider({ unidade = 'kg', children }) {
     if (!isEmptyStore(storeRef.current)) return
     let alive = true
     fetchStore().then(remote => {
-      if (alive && remote && !isEmptyStore(remote)) commit(remote, false)
+      if (alive && remote && !isEmptyStore(remote)) commit({ ...emptyStore(), ...remote }, false)
     })
     return () => { alive = false }
   }, [])
 
-  // Aplica mudança: estado + localStorage (+ Sheets quando sync=true)
   function commit(next, sync) {
     setStore(next)
     saveStore(next)
@@ -47,9 +52,34 @@ export function TreinoProvider({ unidade = 'kg', children }) {
     commit(next, sync)
   }
 
-  // ---- ações de sessão ----
+  // Bloco resolvido: usa os exercícios custom (editados por markdown) se houver.
+  const getBloco = (id) => {
+    const base = BLOCOS.find(b => b.id === id)
+    if (!base) return null
+    const custom = store.customBlocks && store.customBlocks[id]
+    return custom && custom.length ? { ...base, exercicios: custom } : base
+  }
+  const blocos = BLOCOS.map(b => getBloco(b.id))
+
+  // ---- sessão ----
   const setCur = (id, field, value) => mutate(s => {
     s.cur = { ...s.cur, [id]: { ...(s.cur[id] || {}), [field]: value } }
+    return s
+  })
+  const setSerie = (id, i, value) => mutate(s => {
+    const cur = { ...(s.cur[id] || {}) }
+    const series = Array.isArray(cur.series) ? [...cur.series] : []
+    series[i] = value
+    cur.series = series
+    s.cur = { ...s.cur, [id]: cur }
+    return s
+  })
+  const setSerieLado = (id, i, side, value) => mutate(s => {
+    const cur = { ...(s.cur[id] || {}) }
+    const series = Array.isArray(cur.series) ? [...cur.series] : []
+    series[i] = { ...(series[i] || {}), [side]: value }
+    cur.series = series
+    s.cur = { ...s.cur, [id]: cur }
     return s
   })
   const toggleDone = (id) => mutate(s => {
@@ -58,7 +88,7 @@ export function TreinoProvider({ unidade = 'kg', children }) {
   })
 
   const salvar = (blockId, iso) => {
-    const bloco = BLOCOS.find(b => b.id === blockId)
+    const bloco = getBloco(blockId)
     if (!bloco) return
     const dataISO = iso || hojeISO()
     mutate(s => {
@@ -72,12 +102,11 @@ export function TreinoProvider({ unidade = 'kg', children }) {
           done++
           registros.push({
             id: exr.id, nome: exr.nome, prio: exr.prio, kind: exr.kind, lado: exr.lado,
-            carga: c.carga || '', cargaEsq: c.cargaEsq || '', cargaDir: c.cargaDir || '',
-            reps: c.reps || '', rpe: c.rpe || '', medida: c.medida || '', nota: c.nota || '',
+            series: c.series || [], reps: c.reps || '', rpe: c.rpe || '', medida: c.medida || '', nota: c.nota || '',
           })
           prev[exr.id] = fmtPrev(c, exr, unidade)
         }
-        delete cur[exr.id] // limpa a sessão em andamento desse bloco
+        delete cur[exr.id]
       })
       s.cur = cur
       s.prev = prev
@@ -89,19 +118,6 @@ export function TreinoProvider({ unidade = 'kg', children }) {
     }, true)
   }
 
-  const addRun = (form) => {
-    if (!form.dist) return
-    const iso = hojeISO()
-    mutate(s => {
-      s.runs = [{
-        id: Date.now().toString(), iso, data: isoToCurto(iso),
-        dist: form.dist, tempo: form.tempo || '—', pace: form.pace || '—',
-        fc: form.fc || '—', nota: form.nota || '',
-      }, ...s.runs]
-      return s
-    }, true)
-  }
-
   const toggleMarco = (i) => mutate(s => {
     const marcos = [...s.marcos]
     marcos[i] = !marcos[i]
@@ -109,20 +125,38 @@ export function TreinoProvider({ unidade = 'kg', children }) {
     return s
   }, true)
 
+  // ---- plano de corrida (checklist) ----
+  const togglePlanoCheck = (key) => mutate(s => {
+    s.planoChecks = { ...(s.planoChecks || {}), [key]: !(s.planoChecks && s.planoChecks[key]) }
+    return s
+  }, true)
+
+  // ---- edição de treinos por markdown ----
+  const setCustomBlock = (id, md) => mutate(s => {
+    s.customBlocks = { ...(s.customBlocks || {}), [id]: parseTreinoMD(md, id) }
+    return s
+  }, true)
+  const resetCustomBlock = (id) => mutate(s => {
+    const cb = { ...(s.customBlocks || {}) }
+    delete cb[id]
+    s.customBlocks = cb
+    return s
+  }, true)
+
   const reset = () => commit(emptyStore(), true)
 
-  // ---- derivados ----
   const derived = {
     streak: computeStreak(store),
     totalSessoes: store.history.length,
-    runsCount: store.runs.length,
+    corridasFeitas: Object.values(store.planoChecks || {}).filter(Boolean).length,
     dias14: computeDias14(store),
     trend: computeTrend(store, unidade),
   }
 
   const value = {
-    store, unidade, ...derived,
-    setCur, toggleDone, salvar, addRun, toggleMarco, reset,
+    store, unidade, blocos, getBloco, ...derived,
+    setCur, setSerie, setSerieLado, toggleDone, salvar, toggleMarco,
+    togglePlanoCheck, setCustomBlock, resetCustomBlock, reset,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

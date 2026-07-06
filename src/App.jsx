@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { TreinoProvider, useTreino } from './store/TreinoContext.jsx'
-import { BLOCOS } from './data/treinoData.js'
 import TopBar from './components/TopBar.jsx'
 import TabBar from './components/TabBar.jsx'
 import Painel from './pages/Painel.jsx'
@@ -9,18 +8,19 @@ import Sessao from './pages/Sessao.jsx'
 import Corrida from './pages/Corrida.jsx'
 import Progresso from './pages/Progresso.jsx'
 import Saber from './pages/Saber.jsx'
+import EditorTreinos from './pages/EditorTreinos.jsx'
 
-const TITULOS = { painel: 'Painel', treinos: 'Treinos', corrida: 'Corrida', progresso: 'Progresso', saber: 'Saber' }
+const TITULOS = { painel: 'Painel', treinos: 'Treinos', corrida: 'Corrida', progresso: 'Progresso', saber: 'Saber', editor: 'Editar treinos' }
 
 function Shell() {
-  const { streak } = useTreino()
+  const { streak, getBloco } = useTreino()
   // navegação por estado + pilha de histórico (pra ter "voltar" em qualquer tela)
   const [view, setView] = useState({ tab: 'painel', activeBlock: null, retro: null })
   const [hist, setHist] = useState([])
   const { tab, activeBlock, retro } = view
 
   const inSession = tab === 'treinos' && !!activeBlock
-  const blocoObj = activeBlock ? BLOCOS.find(b => b.id === activeBlock) : null
+  const blocoObj = activeBlock ? getBloco(activeBlock) : null
 
   // navega empilhando a tela atual no histórico (ignora no-op)
   const go = (patch) => {
@@ -38,6 +38,7 @@ function Shell() {
   const nav = {
     go: (t) => go({ tab: t }),
     openBlock: (id) => go({ tab: 'treinos', activeBlock: id }),
+    openEditor: () => go({ tab: 'editor' }),
     closeSession: back,
     startRetro: (r) => go({ tab: 'treinos', retro: r }),
     cancelRetro: () => setView(v => ({ ...v, retro: null })),
@@ -57,6 +58,7 @@ function Shell() {
           {tab === 'corrida' && <Corrida nav={nav} />}
           {tab === 'progresso' && <Progresso nav={nav} />}
           {tab === 'saber' && <Saber nav={nav} />}
+          {tab === 'editor' && <EditorTreinos nav={nav} />}
         </div>
         <TabBar tab={tab} onChange={nav.go} />
       </div>

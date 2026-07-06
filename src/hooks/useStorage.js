@@ -9,7 +9,7 @@
 const KEY = 'thali-treino-v2'
 
 export function emptyStore() {
-  return { cur: {}, prev: {}, runs: [], history: [], marcos: [false, false, false] }
+  return { cur: {}, prev: {}, runs: [], history: [], marcos: [false, false, false], planoChecks: {}, customBlocks: {} }
 }
 
 export function loadStore() {
@@ -72,6 +72,21 @@ export function computeDias14(store) {
 }
 
 // Tendência de carga dos principais compostos, a partir do histórico real.
+// Maior peso registrado num exercício (considera séries e legado carga/esq/dir).
+function pesoMax(r) {
+  const vals = []
+  if (Array.isArray(r.series)) {
+    r.series.forEach(s => {
+      if (s && typeof s === 'object') { vals.push(parseFloat(s.e), parseFloat(s.d)) }
+      else vals.push(parseFloat(s))
+    })
+  } else {
+    vals.push(parseFloat(r.carga), parseFloat(r.cargaDir), parseFloat(r.cargaEsq))
+  }
+  const nums = vals.filter(v => !isNaN(v))
+  return nums.length ? Math.max(...nums) : null
+}
+
 const COMPOSTOS = ['Ponte glútea com barra', 'Deadlift romeno', 'Agachamento livre', 'Leg press 45°', 'Remada curvada com barra', 'Agachamento búlgaro']
 export function computeTrend(store, unidade = 'kg') {
   const porNome = {}
@@ -79,7 +94,7 @@ export function computeTrend(store, unidade = 'kg') {
   ;[...(store.history || [])].reverse().forEach(h => {
     (h.registros || []).forEach(r => {
       if (r.kind !== 'peso') return
-      const val = parseFloat(r.carga || r.cargaDir || r.cargaEsq)
+      const val = pesoMax(r)
       if (!val || !COMPOSTOS.includes(r.nome)) return
       ;(porNome[r.nome] = porNome[r.nome] || []).push(val)
     })

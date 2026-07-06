@@ -5,7 +5,7 @@ import { isoToCurto, hojeISO } from '../hooks/useStorage.js'
 import { SectionLabel, Mono, Serif } from '../components/ui.jsx'
 
 export default function Progresso({ nav }) {
-  const { store, streak, totalSessoes, runsCount, dias14, trend, toggleMarco } = useTreino()
+  const { store, streak, totalSessoes, corridasFeitas, dias14, trend, toggleMarco } = useTreino()
   const [retroIso, setRetroIso] = useState(hojeISO())
 
   // progresso por bloco: quantas sessões e a última (history vem do mais novo)
@@ -23,7 +23,7 @@ export default function Progresso({ nav }) {
           <Serif size={30} weight={600} color="var(--surface)">{streak}</Serif>
           <Mono size={9} color="#C9C0B5" style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>dias seguidos</Mono>
         </div>
-        {[[totalSessoes, 'sessões'], [runsCount, 'corridas']].map(([n, l]) => (
+        {[[totalSessoes, 'sessões'], [corridasFeitas, 'corridas']].map(([n, l]) => (
           <div key={l} style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 15, textAlign: 'center' }}>
             <Serif size={30} weight={600}>{n}</Serif>
             <Mono size={9} color="var(--faint)" style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>{l}</Mono>

@@ -28,11 +28,12 @@ export async function fetchStore() {
   try {
     const res = await fetch(SHEETS_URL + '?action=getAll')
     const json = await res.json()
-    if (json && (Array.isArray(json.history) || Array.isArray(json.runs))) {
+    if (json && (Array.isArray(json.history) || json.planoChecks)) {
       return {
         cur: {}, prev: json.prev || {},
         runs: json.runs || [], history: json.history || [],
         marcos: json.marcos || [false, false, false],
+        planoChecks: json.planoChecks || {}, customBlocks: json.customBlocks || {},
       }
     }
     return null

@@ -1,31 +1,27 @@
 # Backup no Google Sheets — "Fonte da Verdade"
 
-O app salva tudo no navegador e, em paralelo, manda uma cópia pra uma planilha
-do Google. Isso serve pra duas coisas:
+O app salva tudo no navegador e manda uma cópia pra uma planilha do Google.
+Serve pra: (1) você ler teus registros numa tabela legível — **uma linha por
+série** (data / treino / exercício / série / peso); (2) **recuperar** se o
+navegador perder os dados.
 
-1. **Você ler teus registros** numa tabela legível — uma linha por exercício,
-   no formato data / treino / exercício / série / peso.
-2. **Recuperar** se o navegador perder os dados (ex: iPhone limpando dados de
-   sites que ficam dias sem abrir) — o app puxa de volta da planilha ao abrir.
-
-> ⚠️ O modelo de dados mudou (RPE, carga por série, esq/dir, corridas, marcos).
-> Cole o código novo abaixo e **reimplante** — sem isso, o backup não funciona.
+> ⚠️ O formato mudou de novo (peso por série + checklist da corrida + treinos
+> editáveis). Cola o código novo abaixo e **reimplanta** (mesma URL).
 
 ## 1. Abrir o Apps Script
 
-Na planilha **Treinos Thali** → menu **Extensões → Apps Script**. As abas
-(`sessoes`, `corridas`, `marcos`, `_backup`) são criadas sozinhas — não precisa
-montar nada à mão.
+Planilha **Treinos Thali** → **Extensões → Apps Script**. As abas (`sessoes`,
+`plano`, `marcos`, `_backup`) são criadas sozinhas.
 
 ## 2. Colar o código
 
-Apaga tudo que estiver lá e cola isto:
+Apaga tudo e cola:
 
 ```javascript
 const SHEETS = {
-  sessoes:  ['Data', 'Treino', 'Exercício', 'Prioridade', 'Feito', 'Carga', 'Carga Esq', 'Carga Dir', 'Reps', 'RPE', 'Medida', 'Nota'],
-  corridas: ['Data', 'Distância (km)', 'Tempo', 'Pace /km', 'FC média', 'Nota'],
-  marcos:   ['Fase', 'Desbloqueado'],
+  sessoes: ['Data', 'Treino', 'Exercício', 'Prioridade', 'Série', 'Peso', 'Reps', 'RPE', 'Nota'],
+  plano:   ['Semana', 'Dia'],
+  marcos:  ['Fase', 'Desbloqueado'],
 };
 const FASES = ['Fase 1 — Base Aeróbica', 'Fase 2 — Construção de Velocidade', 'Fase 3 — Volume e Resistência'];
 
@@ -33,7 +29,6 @@ function sheet_(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return ss.getSheetByName(name) || ss.insertSheet(name);
 }
-
 function reescrever_(name, header, rows) {
   const sh = sheet_(name);
   sh.clear();
@@ -43,32 +38,36 @@ function reescrever_(name, header, rows) {
 
 function doPost(e) {
   try {
-    const body = JSON.parse(e.postData.contents);
-    const store = body.store || {};
+    const store = (JSON.parse(e.postData.contents).store) || {};
 
-    // 1) Backup bruto (recuperação perfeita) — guardado numa aba escondida.
-    const bk = sheet_('_backup');
-    bk.clear();
-    bk.getRange(1, 1).setValue(JSON.stringify(store));
+    // 1) Backup bruto (recuperação perfeita) numa aba escondida.
+    sheet_('_backup').getRange(1, 1).setValue(JSON.stringify(store));
 
-    // 2) Aba legível de sessões — uma linha por exercício registrado.
+    // 2) Sessões — uma linha por série.
     const linhas = [];
     (store.history || []).forEach(function (h) {
       (h.registros || []).forEach(function (r) {
-        linhas.push([
-          h.data, h.nome, r.nome, r.prio, r.feito === false ? 'não' : 'sim',
-          r.carga || '', r.cargaEsq || '', r.cargaDir || '', r.reps || '',
-          r.rpe || '', r.medida || '', r.nota || '',
-        ]);
+        if (r.kind === 'peso' && Array.isArray(r.series) && r.series.length) {
+          r.series.forEach(function (s, i) {
+            const peso = (s && typeof s === 'object')
+              ? ('E ' + (s.e || '–') + ' / D ' + (s.d || '–'))
+              : (s || '');
+            linhas.push([h.data, h.nome, r.nome, r.prio, 'Série ' + (i + 1), peso, r.reps || '', r.rpe || '', r.nota || '']);
+          });
+        } else {
+          linhas.push([h.data, h.nome, r.nome, r.prio, '—', r.medida || '', r.reps || '', r.rpe || '', r.nota || '']);
+        }
       });
     });
     reescrever_('sessoes', SHEETS.sessoes, linhas);
 
-    // 3) Corridas.
-    const corridas = (store.runs || []).map(function (r) {
-      return [r.data, r.dist, r.tempo, r.pace, r.fc, r.nota || ''];
+    // 3) Plano de corrida — treinos marcados.
+    const checks = store.planoChecks || {};
+    const plano = Object.keys(checks).filter(function (k) { return checks[k]; }).map(function (k) {
+      const p = k.split('-');
+      return ['Semana ' + p[0], (p[1] || '').toUpperCase()];
     });
-    reescrever_('corridas', SHEETS.corridas, corridas);
+    reescrever_('plano', SHEETS.plano, plano);
 
     // 4) Marcos.
     const marcos = (store.marcos || []).map(function (m, i) {
@@ -86,13 +85,13 @@ function doPost(e) {
 function doGet(e) {
   try {
     if (e.parameter.action !== 'getAll') return ContentService.createTextOutput('OK');
-    const bk = sheet_('_backup');
-    const raw = bk.getRange(1, 1).getValue();
+    const raw = sheet_('_backup').getRange(1, 1).getValue();
     const store = raw ? JSON.parse(raw) : {};
     return ContentService
       .createTextOutput(JSON.stringify({
         history: store.history || [], runs: store.runs || [],
         marcos: store.marcos || [false, false, false], prev: store.prev || {},
+        planoChecks: store.planoChecks || {}, customBlocks: store.customBlocks || {},
       }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -101,22 +100,14 @@ function doGet(e) {
 }
 ```
 
-## 3. Reimplantar (manter a mesma URL!)
+## 3. Reimplantar (mesma URL!)
 
-A URL já está configurada no app (`src/hooks/useSheets.js`). **Não crie uma nova
-implantação** — isso geraria outra URL e quebraria o backup. Em vez disso:
+A URL já está no app. **Não crie implantação nova** — edita a existente:
 
 1. **Implantar → Gerenciar implantações**
-2. Clica no lápis (editar) na implantação que já existe
-3. Em **Versão**, escolhe **Nova versão**
-4. **Implantar**
+2. Lápis (editar) na implantação atual
+3. **Versão → Nova versão** → **Implantar**
 
-Se for a primeiríssima vez (nunca implantou):
-
-1. **Implantar → Nova implantação** → tipo **App da Web**
-2. Executar como **Eu**, quem acessa **Qualquer pessoa**
-3. **Implantar** → autoriza → copia a URL e cola em `SHEETS_URL` no
-   `src/hooks/useSheets.js`.
-
-Pronto. Cada sessão salva e cada corrida vão pra planilha automaticamente, e o
-app recupera de lá se o armazenamento local sumir.
+Pronto. Cada sessão salva vira linhas por série na aba `sessoes`, os treinos de
+corrida marcados vão pra `plano`, e o app recupera tudo do `_backup` se o
+armazenamento local sumir.

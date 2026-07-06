@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { useTreino } from '../store/TreinoContext.jsx'
+import { parseSeries } from '../data/treinoData.js'
 import TiktokLink from '../components/TiktokLink.jsx'
 
 const ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 }
 const FILTERS = [['P0', 'Só P0'], ['P1', 'P0–P1'], ['P2', 'P0–P2'], ['ALL', 'Tudo']]
 
+const serieInputStyle = { border: '1px solid var(--border)', borderRadius: 8, padding: '7px 8px', fontFamily: 'var(--mono)', fontSize: 13, width: '100%', textAlign: 'center' }
+
 function ExercicioCard({ ex, c, expanded, onExpand, unidade }) {
-  const { setCur, toggleDone } = useTreino()
+  const { setCur, setSerie, setSerieLado, toggleDone } = useTreino()
   const done = !!c.done
+  const nSeries = parseSeries(ex.dose)
+  const series = c.series || []
 
   return (
     <div style={{ background: '#fff', border: '1px solid var(--border)', borderLeft: `5px solid ${ex.cor}`, borderRadius: 12, padding: '14px 14px 14px 15px' }}>
@@ -30,18 +35,32 @@ function ExercicioCard({ ex, c, expanded, onExpand, unidade }) {
         Anterior · {c._anterior}
       </div>
 
-      {/* inputs por tipo */}
-      {ex.kind === 'peso' && ex.lado && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 11 }}>
-          <CampoMono label="Carga esq" value={c.cargaEsq || ''} onChange={v => setCur(ex.id, 'cargaEsq', v)} />
-          <CampoMono label="Carga dir" value={c.cargaDir || ''} onChange={v => setCur(ex.id, 'cargaDir', v)} />
-          <CampoMono label="Reps" value={c.reps || ''} onChange={v => setCur(ex.id, 'reps', v)} />
-        </div>
-      )}
-      {ex.kind === 'peso' && !ex.lado && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 11 }}>
-          <CampoMono flex={1.3} label={`Carga (${unidade})`} value={c.carga || ''} onChange={v => setCur(ex.id, 'carga', v)} />
-          <CampoMono label="Reps" value={c.reps || ''} onChange={v => setCur(ex.id, 'reps', v)} />
+      {/* peso por série */}
+      {ex.kind === 'peso' && (
+        <div style={{ marginBottom: 11 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>Peso por série ({unidade})</span>
+            {ex.lado && <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>esq · dir</span>}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {Array.from({ length: nSeries }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--faint)', flex: '0 0 52px' }}>Série {i + 1}</span>
+                {ex.lado ? (
+                  <>
+                    <input inputMode="decimal" placeholder="E" value={(series[i] && series[i].e) || ''} onChange={e => setSerieLado(ex.id, i, 'e', e.target.value)} style={serieInputStyle} />
+                    <input inputMode="decimal" placeholder="D" value={(series[i] && series[i].d) || ''} onChange={e => setSerieLado(ex.id, i, 'd', e.target.value)} style={serieInputStyle} />
+                  </>
+                ) : (
+                  <input inputMode="decimal" placeholder={unidade} value={series[i] || ''} onChange={e => setSerie(ex.id, i, e.target.value)} style={serieInputStyle} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--faint)', flex: '0 0 52px' }}>Reps</span>
+            <input value={c.reps || ''} onChange={e => setCur(ex.id, 'reps', e.target.value)} placeholder={ex.dose} style={{ ...serieInputStyle, textAlign: 'left', flex: 1 }} />
+          </div>
         </div>
       )}
       {ex.kind === 'medida' && (
